@@ -1,4 +1,4 @@
-# main.py — MX-UI v2.0.0 (FastAPI control plane + VLESS-WS gateway in front of Xray)
+# main.py — MX-UI v2.1.0 (FastAPI control plane + VLESS-WS / Trojan-WS gateways in front of Xray)
 import asyncio
 import base64
 import hashlib
@@ -31,7 +31,7 @@ from pages_dashboard import DASHBOARD_HTML, LOGS_HTML
 from pages_portal import render_portal
 from qr_generator import generate_qr_base64, qr_png_bytes
 
-VERSION = "2.0.0"
+VERSION = "2.2.0"
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO").upper(),
                     format="%(asctime)s [%(levelname)s] %(message)s")
@@ -90,7 +90,12 @@ stats = {"total_bytes": 0, "total_requests": 0, "rejected": 0, "start_time": tim
 _login_fails: dict = defaultdict(deque)
 _save_dirty = False
 
-DEFAULT_PROTOCOL = "vless-ws"
+SS_METHOD = "chacha20-ietf-poly1305"   # must match xray_manager.SS_METHOD
+PROTOCOLS = ("vless", "trojan", "vmess", "ss")
+DEFAULT_PROTOCOLS = ["vless", "trojan"]
+PROTO_LABEL = {"vless": "VLESS", "trojan": "Trojan", "vmess": "VMess", "ss": "Shadowsocks"}
+WS_PATH = "/ws"
+TROJAN_WS_PATH = "/trojan"
 FINGERPRINTS = ("chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized")
 DEFAULT_FINGERPRINT = "chrome"
 DEFAULT_PORT = 443
@@ -114,7 +119,7 @@ async def load_state():
         async with aiofiles.open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.loads(await f.read())
         for uid, link in (data.get("links") or {}).items():
-            LINKS[uid] = _normalize_link(link)
+            LINKS[uid] = _normalize_link(link, uid)
         AUTH["password_hash"] = data.get("password_hash") or None
         for key, value in (data.get("paths") or {}).items():
             if key in CONFIG and isinstance(value, str) and value.startswith("/"):
@@ -333,7 +338,29 @@ def _num(body: dict, key: str, default=0.0) -> float:
 
 
 # ============================================================ link model
-def _normalize_link(link: dict) -> dict:
+def _derive(tag: str, uid: str) -> str:
+    """Stable per-config secret for one protocol, so a config keeps working across restarts."""
+    return hashlib.sha256(f"{tag}:{uid}:{CONFIG['secret']}".encode()).hexdigest()[:24]
+
+
+def _derive_trojan_password(uid: str) -> str:
+    """Stable per-config Trojan password, so a config keeps working across restarts."""
+    return hashlib.sha256(f"trojan:{uid}:{CONFIG['secret']}".encode()).hexdigest()[:24]
+
+
+def _clean_protocols(value, fallback=None) -> list:
+    """Accepts 'vless', 'vless-ws', 'trojan', or a list of those. Returns known protocols in canonical order."""
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, (list, tuple, set)):
+        return list(fallback or DEFAULT_PROTOCOLS)
+    alias = {"shadowsocks": "ss", "ss-ws": "ss", "vmess-ws": "vmess"}
+    wanted = {alias.get(str(v).strip().lower(), str(v).strip().lower().replace("-ws", "")) for v in value}
+    out = [p for p in PROTOCOLS if p in wanted]
+    return out or list(fallback or DEFAULT_PROTOCOLS)
+
+
+def _normalize_link(link: dict, uid: Optional[str] = None) -> dict:
     link = dict(link or {})
     link.setdefault("label", "Config")
     link.setdefault("limit_bytes", 0)
@@ -345,7 +372,15 @@ def _normalize_link(link: dict) -> dict:
     link.setdefault("expires_at", None)
     link.setdefault("note", "")
     link.setdefault("is_default", False)
-    link["protocol"] = DEFAULT_PROTOCOL
+    # v1/v2.0 stored a single "protocol" string; v2.1 keeps a list and adds Trojan.
+    link["protocols"] = _clean_protocols(link.get("protocols") or link.get("protocol"))
+    link.pop("protocol", None)
+    if uid and not str(link.get("trojan_password") or "").strip():
+        link["trojan_password"] = _derive_trojan_password(uid)
+    if uid and not str(link.get("ws_token") or "").strip():
+        link["ws_token"] = _derive("ws", uid)          # path secret for VMess and Shadowsocks
+    if uid and not str(link.get("ss_password") or "").strip():
+        link["ss_password"] = _derive("ss", uid)
     link.setdefault("fingerprint", DEFAULT_FINGERPRINT)
     link.setdefault("alpn", "")
     link.setdefault("ip_limit", 0)
@@ -405,30 +440,99 @@ def _remark(link: dict, suffix: str = "") -> str:
     return f"{name} · {suffix}" if suffix else name
 
 
+def _ws_params(host: str, path: str, fingerprint: Optional[str], alpn: Optional[str]) -> dict:
+    return {
+        "security": "tls", "type": "ws", "host": host, "path": path, "sni": host,
+        "fp": (fingerprint or DEFAULT_FINGERPRINT).strip(),
+        "alpn": (alpn or "http/1.1").strip(),
+    }
+
+
+def _bracket(addr: str) -> str:
+    return f"[{addr}]" if (":" in addr and not addr.startswith("[")) else addr
+
+
+def _qs(params: dict) -> str:
+    return "&".join(f"{k}={quote(str(v), safe='')}" for k, v in params.items())
+
+
 def generate_vless_link(uid: str, host: str, remark: str, fingerprint: Optional[str] = None,
                         alpn: Optional[str] = None, address: Optional[str] = None,
                         port: Optional[int] = None) -> str:
-    params = {
-        "encryption": "none", "security": "tls", "type": "ws", "host": host, "path": "/ws",
-        "sni": host, "fp": (fingerprint or DEFAULT_FINGERPRINT).strip(),
-        "alpn": (alpn or "http/1.1").strip(),
-    }
-    q = "&".join(f"{k}={quote(str(v), safe='')}" for k, v in params.items())
-    addr = address or host
-    if ":" in addr and not addr.startswith("["):
-        addr = f"[{addr}]"
-    return f"vless://{uid}@{addr}:{port or DEFAULT_PORT}?{q}#{quote(remark, safe='')}"
+    params = {"encryption": "none", **_ws_params(host, WS_PATH, fingerprint, alpn)}
+    return (f"vless://{uid}@{_bracket(address or host)}:{port or DEFAULT_PORT}"
+            f"?{_qs(params)}#{quote(remark, safe='')}")
+
+
+def generate_trojan_link(password: str, host: str, remark: str, fingerprint: Optional[str] = None,
+                         alpn: Optional[str] = None, address: Optional[str] = None,
+                         port: Optional[int] = None) -> str:
+    params = _ws_params(host, TROJAN_WS_PATH, fingerprint, alpn)
+    return (f"trojan://{quote(str(password), safe='')}@{_bracket(address or host)}:{port or DEFAULT_PORT}"
+            f"?{_qs(params)}#{quote(remark, safe='')}")
+
+
+def generate_vmess_link(uid: str, host: str, remark: str, fingerprint: Optional[str] = None,
+                        alpn: Optional[str] = None, address: Optional[str] = None,
+                        port: Optional[int] = None, token: str = "") -> str:
+    cfg = {"v": "2", "ps": remark, "add": address or host, "port": str(port or DEFAULT_PORT),
+           "id": uid, "aid": "0", "scy": "auto", "net": "ws", "type": "none", "host": host,
+           "path": f"/vmess/{token}", "tls": "tls", "sni": host,
+           "alpn": (alpn or "http/1.1").strip(), "fp": (fingerprint or DEFAULT_FINGERPRINT).strip()}
+    return "vmess://" + base64.b64encode(json.dumps(cfg, ensure_ascii=False).encode()).decode()
+
+
+def generate_ss_link(password: str, host: str, remark: str, address: Optional[str] = None,
+                     port: Optional[int] = None, token: str = "") -> str:
+    """Shadowsocks over WebSocket+TLS, the way v2ray-plugin clients expect it."""
+    userinfo = base64.urlsafe_b64encode(f"{SS_METHOD}:{password}".encode()).decode().rstrip("=")
+    plugin = f"v2ray-plugin;mode=websocket;host={host};path=/ss/{token};tls"
+    return (f"ss://{userinfo}@{_bracket(address or host)}:{port or DEFAULT_PORT}"
+            f"/?plugin={quote(plugin, safe='')}#{quote(remark, safe='')}")
+
+
+def link_protocols(link: dict) -> list:
+    return _clean_protocols(link.get("protocols"))
+
+
+def trojan_password_of(uid: str, link: dict) -> str:
+    return str(link.get("trojan_password") or _derive_trojan_password(uid))
 
 
 def build_all_links(link: dict, uid: str, host: str) -> list[dict]:
+    """Every shareable URL for a config: one per protocol per address."""
     fp, alpn = link.get("fingerprint"), link.get("alpn")
-    out = [{"tag": "Domain", "address": host,
-            "url": generate_vless_link(uid, host, _remark(link), fp, alpn)}]
+    protos = link_protocols(link)
+    pw = trojan_password_of(uid, link)
+    token = str(link.get("ws_token") or "")
+    ss_pw = str(link.get("ss_password") or _derive("ss", uid))
+    targets = [("Domain", host, DEFAULT_PORT)]
     for i, e in enumerate(link.get("ip_pool") or [], start=1):
-        out.append({"tag": f"IP {i}", "address": e["ip"],
-                    "url": generate_vless_link(uid, host, _remark(link, f"IP {i}"), fp, alpn,
-                                               e["ip"], int(e.get("port") or DEFAULT_PORT))})
+        targets.append((f"IP {i}", e["ip"], int(e.get("port") or DEFAULT_PORT)))
+    out = []
+    for proto in protos:
+        for where, addr, port in targets:
+            suffix = f"{PROTO_LABEL[proto]}" + ("" if where == "Domain" else f" · {where}")
+            remark = _remark(link, suffix)
+            if proto == "vless":
+                url = generate_vless_link(uid, host, remark, fp, alpn, addr, port)
+            elif proto == "trojan":
+                url = generate_trojan_link(pw, host, remark, fp, alpn, addr, port)
+            elif proto == "vmess":
+                url = generate_vmess_link(uid, host, remark, fp, alpn, addr, port, token)
+            else:
+                url = generate_ss_link(ss_pw, host, remark, addr, port, token)
+            out.append({"protocol": proto, "label": PROTO_LABEL[proto], "where": where,
+                        "tag": f"{PROTO_LABEL[proto]} · {where}", "address": addr,
+                        "port": port, "url": url})
     return out
+
+
+def _first_url(variants: list, proto: str) -> str:
+    for v in variants:
+        if v["protocol"] == proto:
+            return v["url"]
+    return ""
 
 
 def sub_url_for(base: str, uid: str) -> str:
@@ -444,7 +548,11 @@ def link_public(uid: str, link: dict, request: Request) -> dict:
         "state": link_state(link),
         "expired": is_link_expired(link),
         "days_left": days_left(link),
-        "vless_link": variants[0]["url"],
+        "protocols": link_protocols(link),
+        "trojan_password": trojan_password_of(uid, link),
+        "vless_link": _first_url(variants, "vless"),
+        "trojan_link": _first_url(variants, "trojan"),
+        "primary_link": variants[0]["url"] if variants else "",
         "variants": variants,
         "sub_url": sub_url_for(base, uid),
         "info_url": sub_url_for(base, uid) + "/info",
@@ -460,7 +568,7 @@ async def ensure_default_link():
             return
         h = hashlib.sha256(f"default{CONFIG['secret']}".encode()).hexdigest()
         uid = str(uuidlib.UUID(h[:32]))
-        LINKS.setdefault(uid, _normalize_link({"label": "Default", "is_default": True}))
+        LINKS.setdefault(uid, _normalize_link({"label": "Default", "is_default": True}, uid))
     mark_dirty()
 
 
@@ -816,8 +924,11 @@ async def api_stats(_=Depends(require_auth)):
     except Exception:
         load = []
     states = defaultdict(int)
+    protos = defaultdict(int)
     for l in snap.values():
         states[link_state(l)] += 1
+        for p in link_protocols(l):
+            protos[p] += 1
     now = datetime.now()
     series = []
     for i in range(23, -1, -1):
@@ -837,6 +948,7 @@ async def api_stats(_=Depends(require_auth)):
         "links_count": len(snap),
         "active_links": states["active"],
         "states": dict(states),
+        "protocols": {p: protos.get(p, 0) for p in PROTOCOLS},
         "series_24h": series,
         "net": [{"t": t, "rx": rx, "tx": tx} for t, rx, tx in NET_SAMPLES],
         "cpu_percent": round(psutil.cpu_percent(None), 1),
@@ -882,6 +994,11 @@ def _apply_limits(link: dict, body: dict):
     if "speed_limit_value" in body:
         link["speed_limit_bytes"] = parse_speed_to_bytes(_num(body, "speed_limit_value"),
                                                          body.get("speed_limit_unit") or "MBIT")
+    if "protocols" in body:
+        want = _clean_protocols(body.get("protocols"), fallback=link_protocols(link))
+        if not want:
+            raise HTTPException(status_code=400, detail="Pick at least one protocol")
+        link["protocols"] = want
     if "fingerprint" in body:
         fp = str(body.get("fingerprint") or DEFAULT_FINGERPRINT)
         link["fingerprint"] = fp if fp in FINGERPRINTS else DEFAULT_FINGERPRINT
@@ -901,7 +1018,7 @@ def _apply_limits(link: dict, body: dict):
 async def create_link(request: Request, _=Depends(require_auth)):
     body = await _json(request)
     uid = str(uuidlib.uuid4())
-    link = _normalize_link({"label": "Config"})
+    link = _normalize_link({"label": "Config"}, uid)
     _apply_limits(link, {**body, "label": body.get("label") or f"Config {len(LINKS) + 1}"})
     async with LINKS_LOCK:
         LINKS[uid] = link
@@ -919,7 +1036,7 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
         if not link:
             raise HTTPException(status_code=404, detail="Config not found")
         if link.get("is_default"):
-            body = {k: v for k, v in body.items() if k in ("active", "fingerprint", "alpn")}
+            body = {k: v for k, v in body.items() if k in ("active", "fingerprint", "alpn", "protocols")}
         if "active" in body:
             link["active"] = bool(body["active"])
         _apply_limits(link, body)
@@ -981,7 +1098,8 @@ async def api_connections(_=Depends(require_auth)):
 
 # ============================================================ tools API
 @app.get("/api/qr")
-async def api_qr(request: Request, data: str = Query(..., max_length=4096), size: int = 300, format: str = "json"):
+async def api_qr(request: Request, data: str = Query(..., max_length=4096), size: int = 300, format: str = "json",
+                 _=Depends(require_auth)):
     if format == "image":
         return Response(qr_png_bytes(data, size), media_type="image/png")
     return {"qr": generate_qr_base64(data, size)}
@@ -1089,7 +1207,7 @@ async def import_db(request: Request, _=Depends(require_auth)):
                 continue
             if not isinstance(link, dict):
                 continue
-            link = _normalize_link(link)
+            link = _normalize_link(link, uid)
             if link.get("is_default") and any(l.get("is_default") for l in LINKS.values()):
                 link["is_default"] = False
             LINKS[uid] = link
@@ -1125,7 +1243,7 @@ async def api_logs_files(name: str, _=Depends(require_auth), tail: int = 200):
     return {"lines": xray_manager.read_log(name, tail=tail)}
 
 
-# ============================================================ VLESS-WS gateway
+# ============================================================ WebSocket gateways (VLESS-WS / Trojan-WS)
 async def _first_chunk(ws: WebSocket, timeout: float = 15.0):
     msg = await asyncio.wait_for(ws.receive(), timeout=timeout)
     if msg.get("type") == "websocket.disconnect":
@@ -1133,8 +1251,33 @@ async def _first_chunk(ws: WebSocket, timeout: float = 15.0):
     return msg.get("bytes") or (msg.get("text") or "").encode()
 
 
-@app.websocket("/ws")
-async def ws_gateway(websocket: WebSocket):
+def _uid_for_vless(chunk: bytes):
+    return limits.vless_uuid_from_chunk(chunk or b"")
+
+
+def _uid_for_trojan(chunk: bytes):
+    """Map the Trojan password hash in the first chunk back to the config uuid."""
+    digest = limits.trojan_hash_from_chunk(chunk or b"")
+    if not digest:
+        return None
+    for uid, link in list(LINKS.items()):
+        if link.get("protocols") and "trojan" not in link_protocols(link):
+            continue
+        if limits.trojan_hash(trojan_password_of(uid, link)) == digest:
+            return uid
+    return None
+
+
+def _uid_for_token(token: str):
+    """VMess and Shadowsocks carry the config's secret path token in the URL."""
+    for uid, link in list(LINKS.items()):
+        t = str(link.get("ws_token") or "")
+        if t and hmac.compare_digest(t, token):
+            return uid
+    return None
+
+
+async def _gateway(websocket: WebSocket, proto: str, token: Optional[str] = None):
     import websockets as _ws
 
     ip = get_client_ip(websocket)
@@ -1148,15 +1291,24 @@ async def ws_gateway(websocket: WebSocket):
         first = early if early else await _first_chunk(websocket)
     except Exception:
         first = None
-    uid = limits.vless_uuid_from_chunk(first or b"")
+
+    if token is not None:
+        uid = _uid_for_token(token)
+    else:
+        resolve = _uid_for_vless if proto == "vless" else _uid_for_trojan
+        uid = resolve(first or b"")
     link = LINKS.get(uid) if uid else None
 
     def reject(reason: str):
         stats["rejected"] += 1
-        logger.debug(f"[ws] reject {ip}: {reason}")
+        logger.debug(f"[{proto}] reject {ip}: {reason}")
 
     if not is_link_allowed(link):
         reject(f"config {uid} is {link_state(link)}")
+        await websocket.close(code=1008)
+        return
+    if proto not in link_protocols(link):
+        reject(f"config {uid} does not allow {proto}")
         await websocket.close(code=1008)
         return
     ip_limit = int(link.get("ip_limit") or 0)
@@ -1167,24 +1319,26 @@ async def ws_gateway(websocket: WebSocket):
             await websocket.close(code=1008)
             return
 
+    tag = xray_manager.TAG_FOR_PROTO[proto]
+    upstream = f"ws://127.0.0.1:{xray_manager.PORTS[tag]}{xray_manager.PATHS[tag]}"
     try:
-        # The backend never needs our subprotocol token; early data is replayed as a normal frame.
-        xray_ws = await _ws.connect(
-            f"ws://127.0.0.1:{xray_manager.WS_PORT}/ws",
-            max_size=None, ping_interval=None, open_timeout=10, close_timeout=3, compression=None)
+        # The core never needs our subprotocol token; early data is replayed as a normal frame.
+        xray_ws = await _ws.connect(upstream, max_size=None, ping_interval=None,
+                                    open_timeout=10, close_timeout=3, compression=None)
     except Exception as e:
-        logger.warning(f"[ws] xray unreachable: {e}")
+        logger.warning(f"[{proto}] xray unreachable: {e}")
         await websocket.close(code=1011)
         return
 
     cid = secrets.token_hex(6)
-    conn = {"uuid": uid, "ip": ip, "connected_at": datetime.now().isoformat(timespec="seconds"), "up": 0, "down": 0}
+    conn = {"uuid": uid, "ip": ip, "proto": proto,
+            "connected_at": datetime.now().isoformat(timespec="seconds"), "up": 0, "down": 0}
     connections[cid] = conn
     stop = asyncio.Event()
 
     async def c2x():
         try:
-            if first:  # VLESS header (from early data or the first frame) goes to Xray first
+            if first:  # protocol header (from early data or the first frame) goes to the core first
                 await xray_ws.send(first)
                 conn["up"] += len(first)
             while not stop.is_set():
@@ -1224,7 +1378,7 @@ async def ws_gateway(websocket: WebSocket):
         # Cuts live sessions within ~5s of being disabled, expiring or running out of data.
         while not stop.is_set():
             await asyncio.sleep(5)
-            if not is_link_allowed(LINKS.get(uid)):
+            if not is_link_allowed(LINKS.get(uid)) or proto not in link_protocols(LINKS.get(uid) or {}):
                 stop.set()
 
     tasks = [asyncio.create_task(f()) for f in (c2x, x2c, guard)]
@@ -1244,10 +1398,30 @@ async def ws_gateway(websocket: WebSocket):
             pass
 
 
+@app.websocket(WS_PATH)
+async def ws_gateway(websocket: WebSocket):
+    await _gateway(websocket, "vless")
+
+
+@app.websocket(TROJAN_WS_PATH)
+async def trojan_gateway(websocket: WebSocket):
+    await _gateway(websocket, "trojan")
+
+
+@app.websocket("/vmess/{token}")
+async def vmess_gateway(websocket: WebSocket, token: str):
+    await _gateway(websocket, "vmess", token)
+
+
+@app.websocket("/ss/{token}")
+async def ss_gateway(websocket: WebSocket, token: str):
+    await _gateway(websocket, "ss", token)
+
+
 # ============================================================ custom-path catch-all (keep last)
 @app.get("/{path:path}")
 async def catchall(request: Request, path: str):
-    if path == "ws" or path.startswith(("ws/", "api/", "stats", "health")):
+    if path in ("ws", "trojan") or path.startswith(("ws/", "trojan/", "vmess/", "ss/", "api/", "stats", "health")):
         raise HTTPException(status_code=404, detail="Not Found")
     p = "/" + path.strip("/")
     if p == CONFIG["dashboard_path"]:

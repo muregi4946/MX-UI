@@ -10,16 +10,10 @@ services:
       - "8080:8080"
     environment:
       - PORT=8080
-      - INTERNAL_PORT=8001
       - TZ=${TZ:-Asia/Tehran}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme123}
-      - SECRET_KEY=${SECRET_KEY:-change-this-secret}
     volumes:
       - ./data:/data
     restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-      - SYS_ADMIN
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s

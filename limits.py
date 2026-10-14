@@ -1,7 +1,8 @@
-# limits.py — per-config speed limiting (token bucket) + VLESS header parsing.
+# limits.py — per-config speed limiting (token bucket) + VLESS/Trojan header parsing.
 # Pure helpers, no imports from main (avoids the old circular import).
 import asyncio
 import base64
+import hashlib
 import time
 import uuid as _uuid
 
@@ -65,6 +66,32 @@ def vless_uuid_from_chunk(chunk: bytes):
         return str(_uuid.UUID(bytes=bytes(chunk[1:17])))
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------- trojan
+_HEX = frozenset("0123456789abcdef")
+
+
+def trojan_hash(password: str) -> str:
+    """Trojan identifies users by hex(SHA224(password)) — 56 lowercase hex chars."""
+    return hashlib.sha224(str(password).encode("utf-8")).hexdigest()
+
+
+def trojan_hash_from_chunk(chunk: bytes):
+    """Trojan request = hex(SHA224(password))[56] + CRLF + cmd + addr + CRLF + payload.
+
+    Returns the lowercase hex digest carried by the client, or None when the first
+    bytes are not a well-formed Trojan header.
+    """
+    if not chunk or len(chunk) < 58:
+        return None
+    if bytes(chunk[56:58]) != b"\r\n":
+        return None
+    try:
+        head = bytes(chunk[:56]).decode("ascii").lower()
+    except Exception:
+        return None
+    return head if all(c in _HEX for c in head) else None
 
 
 def decode_early_data(proto_header: str | None):

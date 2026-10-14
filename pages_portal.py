@@ -1,22 +1,20 @@
-# pages_portal.py — the page a subscriber sees when they open their link in a browser.
+# pages_portal.py — the page a subscriber sees when they open their link in a browser (v2.2.0).
 #
 # Lineage: a boarding pass. The QR sits on a perforated stub, the quota is a segmented
-# fuel-gauge, and the status is a rubber stamp. Everything is server-rendered, no JS needed
-# except copy buttons.
+# fuel-gauge, and the status is a rubber stamp. Links are grouped by protocol (VLESS / Trojan).
+# Everything is server-rendered; JS is only used for copy buttons and the theme toggle.
 import html as _h
 
-from pages import page, ic, SPRITE, UTIL_JS
+from pages import page, ic, SPRITE, UTIL_JS, THEME_BTN, brand
 
 PORTAL_CSS = r"""
-body{display:grid;place-items:start center;padding:28px 16px 48px;background:
-  radial-gradient(1200px 600px at 10% -10%,color-mix(in srgb,var(--sig) 16%,transparent),transparent 60%),
-  radial-gradient(900px 500px at 110% 110%,color-mix(in srgb,var(--navy) 12%,transparent),transparent 60%),var(--bg)}
-.theme{position:fixed;top:14px;right:14px}
+body{display:grid;place-items:start center;padding:28px 16px 48px;background:var(--bg)}
+.theme{position:fixed;top:14px;right:14px;z-index:3}
+.theme .ib{width:40px;height:40px}
 .pass{width:100%;max-width:640px;background:var(--card);border:1.5px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden;position:relative}
-.head{display:flex;align-items:center;gap:12px;padding:20px 24px;border-bottom:1.5px dashed var(--line2)}
-.head b{font-weight:900;font-size:17px;letter-spacing:-.01em}
-.head small{display:block;font:500 12px/1 var(--mono);color:var(--mut);margin-top:4px}
+.head{display:flex;align-items:center;gap:12px;padding:18px 64px 18px 24px;border-bottom:1.5px dashed var(--line2)}
 .head .sp{margin-left:auto}
+.head .lamp{margin-right:2px}
 .body{display:grid;grid-template-columns:minmax(0,1fr) 230px;position:relative}
 .main{padding:26px 26px 24px;display:grid;gap:20px;min-width:0}
 .stub{padding:24px 22px;border-left:2px dashed var(--line2);display:grid;gap:12px;justify-items:center;align-content:start;background:color-mix(in srgb,var(--sunk) 60%,transparent)}
@@ -44,13 +42,22 @@ body{display:grid;place-items:start center;padding:28px 16px 48px;background:
 .facts b{display:block;font-size:17px;font-weight:800;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sec{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .sec b{font-size:16px;font-weight:800}
-.links{border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+.linkbox{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
 .lrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border-bottom:1.5px solid var(--line)}
+.lrow .tag{min-width:112px;justify-content:center}
 .lrow:last-child{border-bottom:0}
 .lrow input{width:100%;min-width:0;height:38px;padding:0 10px;border:1.5px solid var(--line);border-radius:9px;background:var(--sunk);font:12.5px var(--mono);color:var(--mut);text-overflow:ellipsis}
 .lrow input:focus{outline:none;border-color:var(--sig)}
 .tag{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:6px;font:600 12px/1 var(--mono);background:var(--sunk);color:var(--mut)}
 .tag.acc{background:var(--acc-soft);color:var(--acc)}
+.pp{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px;border-radius:7px;font:800 11.5px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.pp svg{width:13px;height:13px;stroke-width:2.4}
+.pp.vless{background:var(--acc-soft);color:var(--acc)}
+.pp.trojan{background:var(--vio-soft);color:var(--vio-ink)}
+.group{display:grid;gap:8px}
+.group-h{display:flex;align-items:center;gap:10px;font:600 12px/1 var(--mono);color:var(--mut);text-transform:uppercase;letter-spacing:.1em}
+.group-h::after{content:"";flex:1;height:1px;background:var(--line)}
+.stub .lamp{display:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);font-weight:700;font-size:15px;white-space:nowrap;transition:transform .08s,filter .15s}
 .btn:hover{filter:brightness(1.05)}.btn:active{transform:translateY(1px)}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
@@ -58,8 +65,11 @@ body{display:grid;place-items:start center;padding:28px 16px 48px;background:
 .btn.block{width:100%}
 .lrow .btn{height:38px}
 .foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 24px;border-top:1.5px dashed var(--line2);color:var(--mut);font-size:13px;background:var(--sunk)}
+.links{display:grid;gap:0}
 .foot b{color:var(--ink)}
 .none{padding:18px;text-align:center;color:var(--mut);font-size:14px}
+.ptags{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:400px){.main{padding:18px 16px}.stub{padding:18px 16px}.head{padding:16px 60px 16px 16px}.foot{padding:12px 16px}}
 @media(max-width:640px){
   .body{grid-template-columns:1fr}
   .stub{border-left:0;border-top:2px dashed var(--line2);grid-template-columns:auto 1fr;justify-items:start;align-items:center}
@@ -72,6 +82,7 @@ body{display:grid;place-items:start center;padding:28px 16px 48px;background:
   .facts div:nth-child(-n+3){border-bottom:1.5px solid var(--line)}
   .lrow{grid-template-columns:minmax(0,1fr) auto}
   .lrow .tag{display:none}
+.lrow .pp{display:none}
 }
 """
 
@@ -117,6 +128,26 @@ def _vu(pct: float, n: int = 30, unlimited: bool = False) -> str:
     return f'<div class="vu" role="img" aria-label="{pct:.0f}% used">' + "".join(cells) + "</div>"
 
 
+_PP = {"vless": ("vless", "bolt", "VLESS"), "trojan": ("trojan", "shield", "Trojan"),
+       "vmess": ("vmess", "cpu", "VMess"), "ss": ("ss", "key", "Shadowsocks")}
+_PORTAL_ORDER = [(k, v[2]) for k, v in _PP.items()]
+
+
+def _pill(proto: str) -> str:
+    cls, icon, name = _PP.get(proto, _PP["vless"])
+    return f'<span class="pp {cls}">{ic(icon)}{name}</span>'
+
+
+def _variant_row(rid: str, v: dict, e) -> str:
+    proto = str(v.get("protocol") or "vless")
+    pill = ('<span class="pp trojan">' + ic("shield") + 'Trojan</span>') if proto == "trojan" \
+        else ('<span class="pp vless">' + ic("bolt") + 'VLESS</span>')
+    where = e(str(v.get("where") or "Domain"))
+    return (f'<div class="lrow"><span class="tag">{where}</span>'
+            f'<input id="{rid}" readonly value="{e(v["url"])}" aria-label="{e(v.get("tag", proto))} link">'
+            f'<button class="btn sm" data-copy="{rid}">{ic("copy")}<span>Copy</span></button></div>'), pill
+
+
 def render_portal(d: dict) -> str:
     """d: output of main.link_public() without ip_pool/note, plus a 'qr' data-URI."""
     e = _h.escape
@@ -141,36 +172,43 @@ def render_portal(d: dict) -> str:
     else:
         exp_text, exp_sub = "Never", "No expiry"
 
+    protos = d.get("protocols") or ["vless"]
+    pills = "".join(_pill(x) for x in protos)
+
     variants = d.get("variants") or []
-    rows = []
-    for i, v in enumerate(variants):
-        rid = f"lk{i}"
-        rows.append(
-            f'<div class="lrow"><span class="tag{" acc" if i == 0 else ""}">{e(v["tag"])}</span>'
-            f'<input id="{rid}" readonly value="{e(v["url"])}" aria-label="{e(v["tag"])} link">'
-            f'<button class="btn sm" data-copy="{rid}">{ic("copy")}<span>Copy</span></button></div>')
-    links_html = "".join(rows) if rows else '<div class="none">No links available right now.</div>'
+    groups, idx = [], 0
+    for proto, title in _PORTAL_ORDER:
+        rows = []
+        for v in variants:
+            if v.get("protocol") != proto:
+                continue
+            rid = f"lk{idx}"
+            idx += 1
+            rows.append(_variant_row(rid, v, e)[0])
+        if rows:
+            groups.append(f'<div class="group"><div class="group-h">{title} · {len(rows)} link'
+                          f'{"s" if len(rows) != 1 else ""}</div><div class="linkbox">{"".join(rows)}</div></div>')
+    links_html = "".join(groups) if groups else '<div class="none">No links available right now.</div>'
 
     sub_url = e(str(d.get("sub_url") or ""))
-    rid_sub = "subUrl"
     rows_sub = (f'<div class="lrow"><span class="tag">Subscription</span>'
-                f'<input id="{rid_sub}" readonly value="{sub_url}" aria-label="Subscription URL">'
-                f'<button class="btn sm" data-copy="{rid_sub}">{ic("copy")}<span>Copy</span></button></div>')
+                f'<input id="subUrl" readonly value="{sub_url}" aria-label="Subscription URL">'
+                f'<button class="btn sm" data-copy="subUrl">{ic("copy")}<span>Copy</span></button></div>')
 
     return page(f"{label} · MX-UI", PORTAL_CSS, f"""<body>
 {SPRITE}
-<button class="ib theme" onclick="toggleTheme()" aria-label="Toggle theme" style="width:40px;height:40px;display:grid;place-items:center;border-radius:10px;color:var(--mut)">{ic("theme")}</button>
+<div class="theme">{THEME_BTN}</div>
 <article class="pass" aria-labelledby="pname">
   <header class="head">
-    <span class="lamp {lamp}"></span>
-    <div><b>MX-UI</b><small>Subscription pass</small></div>
+    {brand("Subscription pass", "sm")}
     <span class="sp"></span>
+    <span class="lamp {lamp}"></span>
   </header>
   <div class="body">
     <section class="main">
       <div style="display:grid;gap:12px">
         <h1 class="name" id="pname">{label}</h1>
-        <span class="stamp {stamp_cls}"><span class="lamp {lamp}"></span>{stamp_text}</span>
+        <div class="ptags">{pills}<span class="stamp {stamp_cls}"><span class="lamp {lamp}"></span>{stamp_text}</span></div>
       </div>
       <div class="gauge">
         <div class="top"><b>{_gb(used)}<em> / {_gb(limit) if not unlimited else "∞"}</em></b><span>{"unlimited" if unlimited else f"{pct:.0f}% used"}</span></div>
@@ -183,14 +221,15 @@ def render_portal(d: dict) -> str:
         <div><small>Live devices</small><b>{int(d.get("live_connections") or 0)}</b></div>
       </div>
       <div class="sec"><b>Connection links</b><button class="btn sm" onclick="copyAll()">{ic("copy")}<span>Copy all</span></button></div>
-      <div class="links">{links_html}{rows_sub}</div>
+      {links_html}
+      <div class="linkbox">{rows_sub}</div>
     </section>
     <aside class="stub">
       <div class="qr"><img src="{d.get("qr", "")}" alt="Subscription QR code"></div>
       <small>Scan with your client<br>to import everything</small>
     </aside>
   </div>
-  <footer class="foot"><span>Created by Muvixo</span><span>MX-UI <b>v2.0.0</b></span></footer>
+  <footer class="foot"><span>Created by Muvixo</span><span>MX-UI <b>v2.2.0</b></span></footer>
 </article>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script>{UTIL_JS}{PORTAL_JS}</script>

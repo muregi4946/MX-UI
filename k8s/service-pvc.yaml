@@ -15,37 +15,6 @@ spec:
     port: 80
     targetPort: 8080
     protocol: TCP
-  - name: https
-    port: 443
-    targetPort: 443
-    protocol: TCP
-  - name: port8081
-    port: 8081
-    targetPort: 8081
-  - name: port8082
-    port: 8082
-    targetPort: 8082
-  - name: port8083
-    port: 8083
-    targetPort: 8083
-  - name: port8084
-    port: 8084
-    targetPort: 8084
-  - name: port8085
-    port: 8085
-    targetPort: 8085
-  - name: port8086
-    port: 8086
-    targetPort: 8086
-  - name: port8087
-    port: 8087
-    targetPort: 8087
-  - name: port8088
-    port: 8088
-    targetPort: 8088
-  - name: port8089
-    port: 8089
-    targetPort: 8089
 
 ---
 apiVersion: v1

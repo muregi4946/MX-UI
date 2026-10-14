@@ -1,49 +1,49 @@
-# pages_dashboard.py — admin dashboard + logs page
+# pages_dashboard.py — admin dashboard + logs page (v2.2.0)
 #
 # Signature: the "lamp" per config (lit = carrying traffic) and the segmented VU meters.
-# The header runs a live throughput scope. Everything is one HTML file, no CDN scripts.
-from pages import page, ic, UTIL_JS, SPRITE
+# Each config can speak VLESS, Trojan, or both. Everything is one HTML file, no CDN scripts.
+from pages import page, ic, UTIL_JS, SPRITE, MODAL_CSS, ASK_MODAL, THEME_BTN, brand
 
 DASH_CSS = r"""
 .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
-header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--line)}
-.bar{height:66px;display:flex;align-items:center;gap:14px}
-.brand{display:flex;align-items:center;gap:11px;min-width:0}
-.brand b{font-weight:900;font-size:18px;letter-spacing:-.02em}
-.brand small{display:block;font:500 12px/1 var(--mono);color:var(--mut);margin-top:3px}
-.hs{margin-left:auto;display:flex;align-items:center;gap:10px}
+header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 84%,transparent);backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);border-bottom:1px solid var(--line)}
+.bar{min-height:68px;padding:12px 0;display:flex;align-items:center;flex-wrap:wrap;gap:12px 14px}
+.hs{margin-left:auto;display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px;min-width:0}
 .tools{display:flex;gap:2px;align-items:center}
 .sep{width:1px;height:24px;background:var(--line);margin:0 4px}
-.scope{width:150px;height:34px;display:block;border-radius:8px;background:var(--sunk);border:1px solid var(--line)}
+.scope{width:150px;height:34px;display:block;border-radius:9px;background:var(--sunk);border:1px solid var(--line)}
 @media(max-width:860px){.scope{display:none}}
+@media(max-width:720px){.tools .ib.hide-s{display:none}.hs .chip{display:none}}
 
 /* hero */
-.hero{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;margin:26px 0 18px}
-.panel{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow);min-width:0}
+.hero{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;margin:28px 0 18px}
+.panel{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r-lg);padding:22px;box-shadow:var(--shadow);min-width:0;position:relative}
 .kicker{font:600 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--mut);display:flex;align-items:center;gap:8px}
-.big{font-size:clamp(46px,7vw,78px);font-weight:900;letter-spacing:-.05em;line-height:.95;margin-top:14px;font-variant-numeric:tabular-nums}
-.big small{font-size:.36em;letter-spacing:-.01em;color:var(--mut);font-weight:700;margin-left:6px}
-.sub{color:var(--mut);font-size:15px;margin-top:10px}
-.kpis{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;align-self:stretch}
+.big{font-size:clamp(46px,7vw,80px);font-weight:900;letter-spacing:-.05em;line-height:.95;margin-top:16px;font-variant-numeric:tabular-nums;color:var(--acc)}
+.big small{font-size:.36em;letter-spacing:-.01em;font-weight:800;margin-left:6px;-webkit-text-fill-color:var(--mut);color:var(--mut)}
+.sub{color:var(--mut);font-size:15px;margin-top:12px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--line);border-radius:16px;overflow:hidden;align-self:stretch;background:var(--card2)}
 .kpi{padding:16px 18px;min-width:0}
 .kpi:nth-child(odd){border-right:1.5px solid var(--line)}.kpi:nth-child(-n+2){border-bottom:1.5px solid var(--line)}
 .kpi small{display:block;color:var(--mut);font-size:13px;font-weight:700}
 .kpi b{display:block;font-size:30px;font-weight:800;letter-spacing:-.03em;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi b em{font-style:normal;color:var(--mut);font-size:.55em;font-weight:700}
 .kpi.live b{color:var(--acc)}
+.pmix{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .charts{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
 .chart{height:170px;width:100%;display:block;margin-top:12px}
 .legend{display:flex;gap:14px;font-size:13px;color:var(--mut);font-weight:700;align-items:center;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-.ph{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .ph h3{font-size:17px;font-weight:800;letter-spacing:-.01em}
 @media(max-width:900px){.hero,.charts{grid-template-columns:1fr}}
 
 /* system */
-.sys{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:34px}
-.meter{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;gap:12px;min-width:0}
-.meter .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.meter .top small{font-weight:800;font-size:14px}
+.sys{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:36px}
+.meter{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;gap:12px;min-width:0;box-shadow:var(--sh1)}
+.meter .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.meter .top small{font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;color:var(--mut)}
+.meter .top small svg{color:var(--sig)}
 .meter .top b{font:600 22px/1 var(--mono);letter-spacing:-.02em}
 .meter p{color:var(--mut);font-size:13px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:900px){.sys{grid-template-columns:1fr 1fr}}
@@ -51,25 +51,32 @@ header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 8
 
 /* configs */
 .sec{margin-bottom:12px}
-.sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
 .sec-h h2{font-size:30px;font-weight:900;letter-spacing:-.03em;line-height:1}
 .sec-h p{color:var(--mut);font-size:15px;margin-top:6px}
 .ctrls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.search{position:relative}.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--mut)}
+.search{position:relative;display:block}.search>svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none}
 .search .input{padding-left:40px;width:240px;height:42px}
-.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.fchip{height:34px;padding:0 13px;border-radius:99px;border:1.5px solid var(--line);font-size:14px;font-weight:700;color:var(--mut);background:var(--card);display:inline-flex;align-items:center;gap:8px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.fgroup{display:flex;gap:6px;flex-wrap:wrap}
+.fsep{width:1px;height:24px;background:var(--line);margin:0 6px}
+.fchip{height:34px;padding:0 13px;border-radius:99px;border:1.5px solid var(--line);font-size:14px;font-weight:700;color:var(--mut);background:var(--card);display:inline-flex;align-items:center;gap:8px;transition:border-color .15s,color .15s}
+.fchip:hover{border-color:var(--line2);color:var(--ink)}
 .fchip b{font:600 12px var(--mono);color:var(--mut);background:var(--sunk);border-radius:99px;padding:1px 7px}
 .fchip[aria-pressed=true]{border-color:var(--ink);color:var(--ink)}
 .fchip[aria-pressed=true] b{background:var(--ink);color:var(--bg)}
+.fchip.vl[aria-pressed=true]{border-color:var(--acc);color:var(--acc)}.fchip.vl[aria-pressed=true] b{background:var(--acc);color:var(--acc-ink)}
+.fchip.tr[aria-pressed=true]{border-color:var(--vio);color:var(--vio-ink)}.fchip.tr[aria-pressed=true] b{background:var(--vio);color:#fff}
+.fchip.vm[aria-pressed=true]{border-color:var(--navy);color:var(--navy)}.fchip.vm[aria-pressed=true] b{background:var(--navy);color:#fff}
+.fchip.ss[aria-pressed=true]{border-color:var(--amb-ink);color:var(--amb-ink)}.fchip.ss[aria-pressed=true] b{background:var(--amb);color:#1a1400}
 .lines{display:grid;gap:10px}
-.line{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;transition:border-color .2s,transform .2s;position:relative;animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+.line{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;transition:border-color .2s,box-shadow .2s;position:relative;animation:rise .45s cubic-bezier(.2,.8,.2,1) both;box-shadow:var(--sh1)}
 .line:hover{border-color:var(--line2)}
-.line.off{background:transparent;border-style:dashed}
+.line.off{background:transparent;border-style:dashed;box-shadow:none}
 .line.off .name b{color:var(--mut)}
 .line.def{border-color:color-mix(in srgb,var(--sig) 40%,var(--line))}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.name{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.name{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
 .name b{font-size:18px;font-weight:800;letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .meta{display:flex;gap:6px 14px;flex-wrap:wrap;margin-top:8px;font-size:13.5px;color:var(--mut)}
 .meta span b{color:var(--ink);font-weight:700;font-family:var(--mono);font-size:13px}
@@ -86,33 +93,38 @@ header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 8
 .sw input:focus-visible+i{outline:2px solid var(--sig);outline-offset:3px}
 .empty{padding:44px 20px;text-align:center;border:1.5px dashed var(--line2);border-radius:16px;color:var(--mut)}
 .empty b{display:block;color:var(--ink);font-size:20px;font-weight:800;margin-bottom:6px}
-.sk{height:104px;border-radius:16px;background:linear-gradient(90deg,var(--sunk),var(--card),var(--sunk));background-size:200% 100%;animation:shim 1.4s linear infinite;border:1.5px solid var(--line)}
-@keyframes shim{to{background-position:-200% 0}}
+.empty svg{width:34px;height:34px;color:var(--sig);margin-bottom:10px}
+.sk{height:104px;border-radius:16px;background:var(--sunk);border:1.5px solid var(--line);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
 footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:var(--mut);font-size:13.5px;padding:34px 0 40px;border-top:1px solid var(--line);margin-top:34px}
 footer b{color:var(--ink);font-family:var(--mono);font-weight:600}
 @media(max-width:720px){
+  .fsep{display:none}
   .line{grid-template-columns:auto minmax(0,1fr);gap:12px 14px}
   .line .acts{grid-column:1/-1;justify-content:flex-start}
   .search .input{width:100%}.search{flex:1 1 100%}
-  .hs .chip{display:none}
-  .bar{height:60px}
-  .tools .ib:nth-child(-n+2){display:none}
+  .bar{padding:10px 0}
 }
 
-/* lk: link field */
+/* link field */
 .lk{display:flex;gap:8px;align-items:center}
 .lk .input{font:13px var(--mono);height:42px;min-width:0;flex:1}
 
-/* modal */
-.modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:18px;background:rgba(6,16,15,.52);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .2s}
-.modal.open{opacity:1;pointer-events:auto}
-.sheet{width:min(var(--w,560px),100%);max-height:calc(100dvh - 36px);display:flex;flex-direction:column;background:var(--card);border:1.5px solid var(--line);border-radius:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5);transform:translateY(14px) scale(.98);transition:transform .3s cubic-bezier(.2,.9,.3,1.1);outline:none}
-.modal.open .sheet{transform:none}
-.mh{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:22px 22px 0}
-.mh h3{font-size:24px;font-weight:900;letter-spacing:-.025em;line-height:1.1}
-.mh p{color:var(--mut);font-size:14.5px;margin-top:6px}
-.mb{padding:18px 22px;overflow:auto;display:grid;gap:16px;min-height:0}
-.mf{padding:0 22px 22px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+/* protocol toggles (config form) */
+.ptog-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:560px){.ptog-row{grid-template-columns:1fr}}
+.ptog{display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:2px;align-items:center;padding:13px 14px;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;transition:border-color .15s,background .15s}
+.ptog:hover{border-color:var(--line2)}
+.ptog input{width:18px;height:18px;accent-color:var(--acc);grid-row:span 2}
+.ptog span{font-weight:800;font-size:15px;display:flex;align-items:center;gap:7px}
+.ptog small{color:var(--mut);font-size:12.5px}
+.ptog.vl:has(input:checked){border-color:var(--sig);background:var(--acc-soft)}
+.ptog.tr:has(input:checked){border-color:var(--vio);background:var(--vio-soft)}
+.ptog.tr input{accent-color:var(--vio)}
+.ptog.vm:has(input:checked){border-color:var(--navy);background:rgba(22,49,125,.09)}.ptog.vm input{accent-color:var(--navy)}
+.ptog.ss:has(input:checked){border-color:var(--amb-ink);background:var(--amb-soft)}.ptog.ss input{accent-color:var(--amb-ink)}
+
+/* generic */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 @media(max-width:560px){.g2,.g3{grid-template-columns:1fr}}
@@ -133,13 +145,16 @@ footer b{color:var(--ink);font-family:var(--mono);font-weight:600}
 .mini{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px}
 .mini small{display:block;color:var(--mut);font-size:12.5px;font-weight:700}
 .mini b{font:600 20px/1.2 var(--mono);letter-spacing:-.02em}
-.qrs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.qrs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:820px){.qrs{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.qrs{grid-template-columns:1fr}}
-.qc{border:1.5px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px;justify-items:center;text-align:center}
-.qc .qi{width:100%;max-width:240px;aspect-ratio:1;background:#fff;border-radius:12px;padding:12px;display:grid;place-items:center}
+.qc{border:1.5px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px;justify-items:center;text-align:center;min-width:0}
+.qc .qi{width:100%;max-width:220px;aspect-ratio:1;background:#fff;border-radius:12px;padding:12px;display:grid;place-items:center}
 .qc .qi img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
-.qc p{font:500 12px/1.4 var(--mono);color:var(--mut);word-break:break-all;max-height:44px;overflow:hidden;width:100%}
+.qc p{font:500 11.5px/1.4 var(--mono);color:var(--mut);word-break:break-all;max-height:44px;overflow:hidden;width:100%}
 .hres{border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+@media(max-width:480px){.hr{grid-template-columns:minmax(0,1fr) auto}.hr .mono:last-child{display:none}}
+.hr>span:first-child{min-width:0;overflow-wrap:anywhere}
 .hr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;padding:11px 14px;border-bottom:1.5px solid var(--line);font-size:14.5px;align-items:center}
 .hr:last-child{border-bottom:0}
 .hr .mono{color:var(--mut);font-size:13px}
@@ -152,29 +167,28 @@ td.r,th.r{text-align:right}
 .drop{border:1.5px dashed var(--line2);border-radius:14px;padding:22px;text-align:center;color:var(--mut);cursor:pointer;transition:border-color .15s,background .15s}
 .drop:hover,.drop.over{border-color:var(--sig);background:var(--acc-soft);color:var(--ink)}
 .dz{display:none}
-.confirm .sheet{--w:420px}
-.bdg{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:var(--amb-soft);color:var(--amb-ink);margin-bottom:6px}
-.bdg.bad{background:var(--red-soft);color:var(--red)}
-.bdg svg{width:24px;height:24px}
 .tgl{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px}
 .tgl small{color:var(--mut);font-size:13px;display:block}
 .ta{min-height:76px;padding:12px 14px;resize:vertical;font:13px var(--mono)}
+.ver-foot{color:var(--mut)}
+@media(max-width:560px){.sec-h h2{font-size:26px}.kpi b{font-size:24px}.panel{padding:18px}.mh{padding:18px 18px 0}.mb{padding:16px 18px}.mf{padding:0 18px 18px}}
+.mf .btn{flex:1 1 auto}
 """
 
 DASH_BODY = r"""<body>
 <header><div class="wrap bar">
-  <div class="brand"><span class="lamp live"></span><div><b>MX-UI</b><small>v2.0.0</small></div></div>
+  __BRAND__
   <div class="hs">
     <span class="chip" id="xrayChip"><span class="lamp" id="xrayLamp"></span><span id="xrayText">Xray</span></span>
     <canvas class="scope" id="scope" width="300" height="68" aria-label="Live throughput scope"></canvas>
     <div class="tools">
-      <button class="ib" onclick="location.href='/logs'" title="Logs" aria-label="Logs">__IC_terminal__</button>
+      <button class="ib hide-s" onclick="location.href='/logs'" title="Logs" aria-label="Logs">__IC_terminal__</button>
       <button class="ib" onclick="openModal('connModal')" title="Live connections" aria-label="Live connections">__IC_users__</button>
-      <button class="ib" onclick="openModal('ipModal')" title="IP suggestions" aria-label="IP suggestions">__IC_globe__</button>
-      <button class="ib" onclick="openModal('healthModal')" title="Health check" aria-label="Health check">__IC_pulse__</button>
+      <button class="ib hide-s" onclick="openModal('ipModal')" title="IP suggestions" aria-label="IP suggestions">__IC_globe__</button>
+      <button class="ib hide-s" onclick="openModal('healthModal')" title="Health check" aria-label="Health check">__IC_pulse__</button>
       <button class="ib" onclick="openModal('dbModal')" title="Backup and restore" aria-label="Backup and restore">__IC_db__</button>
       <button class="ib" onclick="openModal('setModal')" title="Settings" aria-label="Settings">__IC_cog__</button>
-      <button class="ib" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">__IC_theme__</button>
+      __THEME__
       <span class="sep"></span>
       <button class="ib bad" onclick="logout()" title="Log out" aria-label="Log out">__IC_out__</button>
     </div>
@@ -187,6 +201,7 @@ DASH_BODY = r"""<body>
       <div class="kicker"><span class="lamp live" style="width:8px;height:8px"></span>Traffic since boot</div>
       <div class="big" id="bigTotal">0<small>B</small></div>
       <div class="sub" id="bigSub">Waiting for the first poll…</div>
+      <div class="pmix" id="pmix"></div>
     </div>
     <div class="panel" style="padding:0;display:flex">
       <div class="kpis" style="flex:1">
@@ -211,10 +226,10 @@ DASH_BODY = r"""<body>
 
   <section aria-label="System">
     <div class="sys">
-      <div class="meter"><div class="top"><small>CPU</small><b id="mCpu">0%</b></div><div id="vCpu"></div><p id="pCpu">--</p></div>
-      <div class="meter"><div class="top"><small>Memory</small><b id="mRam">0%</b></div><div id="vRam"></div><p id="pRam">--</p></div>
-      <div class="meter"><div class="top"><small>Swap</small><b id="mSwap">0%</b></div><div id="vSwap"></div><p id="pSwap">--</p></div>
-      <div class="meter"><div class="top"><small>Storage</small><b id="mDisk">0%</b></div><div id="vDisk"></div><p id="pDisk">--</p></div>
+      <div class="meter"><div class="top"><small>__IC_cpu__CPU</small><b id="mCpu">0%</b></div><div id="vCpu"></div><p id="pCpu">--</p></div>
+      <div class="meter"><div class="top"><small>__IC_gauge__Memory</small><b id="mRam">0%</b></div><div id="vRam"></div><p id="pRam">--</p></div>
+      <div class="meter"><div class="top"><small>__IC_sliders__Swap</small><b id="mSwap">0%</b></div><div id="vSwap"></div><p id="pSwap">--</p></div>
+      <div class="meter"><div class="top"><small>__IC_server__Storage</small><b id="mDisk">0%</b></div><div id="vDisk"></div><p id="pDisk">--</p></div>
     </div>
   </section>
 
@@ -222,28 +237,45 @@ DASH_BODY = r"""<body>
     <div class="sec-h">
       <div><h2>Configs</h2><p id="cfgSub">Every config is a line. A lit lamp means it's carrying traffic.</p></div>
       <div class="ctrls">
-        <label class="search"><span class="sr" style="position:absolute;left:-9999px">Search</span>__IC_search__<input id="q" class="input" type="search" placeholder="Search configs" autocomplete="off"></label>
+        <label class="search"><span class="sr">Search</span>__IC_search__<input id="q" class="input" type="search" placeholder="Search configs" autocomplete="off"></label>
         <button class="btn pri" onclick="newConfig()">__IC_plus__<span>New config</span></button>
       </div>
     </div>
-    <div class="filters" id="filters" role="group" aria-label="Filter by state">
-      <button class="fchip" data-f="all" aria-pressed="true">All <b id="cAll">0</b></button>
-      <button class="fchip" data-f="active" aria-pressed="false">Active <b id="cActive">0</b></button>
-      <button class="fchip" data-f="disabled" aria-pressed="false">Disabled <b id="cDisabled">0</b></button>
-      <button class="fchip" data-f="expired" aria-pressed="false">Expired <b id="cExpired">0</b></button>
-      <button class="fchip" data-f="depleted" aria-pressed="false">Out of data <b id="cDepleted">0</b></button>
+    <div class="filters" role="group" aria-label="Filter">
+      <div class="fgroup" id="filters">
+        <button class="fchip" data-f="all" aria-pressed="true">All <b id="cAll">0</b></button>
+        <button class="fchip" data-f="active" aria-pressed="false">Active <b id="cActive">0</b></button>
+        <button class="fchip" data-f="disabled" aria-pressed="false">Disabled <b id="cDisabled">0</b></button>
+        <button class="fchip" data-f="expired" aria-pressed="false">Expired <b id="cExpired">0</b></button>
+        <button class="fchip" data-f="depleted" aria-pressed="false">Out of data <b id="cDepleted">0</b></button>
+      </div>
+      <span class="fsep"></span>
+      <div class="fgroup" id="pfilters">
+        <button class="fchip" data-p="all" aria-pressed="true">Any protocol</button>
+        <button class="fchip vl" data-p="vless" aria-pressed="false">VLESS <b id="cVless">0</b></button>
+        <button class="fchip tr" data-p="trojan" aria-pressed="false">Trojan <b id="cTrojan">0</b></button>
+        <button class="fchip vm" data-p="vmess" aria-pressed="false">VMess <b id="cVmess">0</b></button>
+        <button class="fchip ss" data-p="ss" aria-pressed="false">Shadowsocks <b id="cSs">0</b></button>
+      </div>
     </div>
     <div class="lines" id="lines"><div class="sk"></div><div class="sk"></div></div>
   </section>
 
-  <footer><span>MX-UI v2.0.0 · Created by Muvixo</span><span>Core <b id="foot">--</b></span></footer>
+  <footer><span>MX-UI v2.2.0 · Created by Muvixo</span><span>Core <b id="foot">--</b></span></footer>
 </main>
 
 <!-- ============ modals ============ -->
-<div id="cfgModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="cfgTitle"><div class="sheet" tabindex="-1" style="--w:640px">
-  <div class="mh"><div><h3 id="cfgTitle">New config</h3><p id="cfgSub2">A VLESS + WebSocket line with its own quota and limits.</p></div><button class="ib" onclick="closeModal('cfgModal')" aria-label="Close">__IC_x__</button></div>
+<div id="cfgModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="cfgTitle"><div class="sheet" tabindex="-1" style="--w:660px">
+  <div class="mh"><div><h3 id="cfgTitle">New config</h3><p id="cfgSub2">A tunnel line with its own quota and limits.</p></div><button class="ib" onclick="closeModal('cfgModal')" aria-label="Close">__IC_x__</button></div>
   <div class="mb">
     <input type="hidden" id="cUid">
+    <div class="sect">Protocols</div>
+    <div class="ptog-row">
+      <label class="ptog vl"><input type="checkbox" id="pV" checked><span>__IC_bolt__VLESS</span><small>WebSocket over TLS</small></label>
+      <label class="ptog tr"><input type="checkbox" id="pT"><span>__IC_shield__Trojan</span><small>WebSocket over TLS</small></label>
+      <label class="ptog vm"><input type="checkbox" id="pM"><span>__IC_cpu__VMess</span><small>WebSocket over TLS</small></label>
+      <label class="ptog ss"><input type="checkbox" id="pS"><span>__IC_key__Shadowsocks</span><small>v2ray-plugin over TLS</small></label>
+    </div>
     <div class="sect">Identity</div>
     <div class="g2">
       <label class="field"><span>Name</span><input id="cLabel" class="input" maxlength="64" placeholder="e.g. Frankfurt-1" autocomplete="off"></label>
@@ -264,12 +296,9 @@ DASH_BODY = r"""<body>
   <div class="mf"><button class="btn" onclick="closeModal('cfgModal')">Cancel</button><button class="btn pri" id="cfgSave" onclick="saveConfig()">Create config</button></div>
 </div></div>
 
-<div id="qrModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="sheet" tabindex="-1" style="--w:680px">
+<div id="qrModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="sheet" tabindex="-1" style="--w:920px">
   <div class="mh"><div><h3 id="qrTitle">Share</h3><p id="qrName">Config</p></div><button class="ib" onclick="closeModal('qrModal')" aria-label="Close">__IC_x__</button></div>
-  <div class="mb"><div class="qrs">
-    <div class="qc"><b>Client config</b><div class="qi"><img id="qrA" alt="Config QR"></div><p id="qrAt"></p><button class="btn sm" onclick="copyText(qrAt.textContent,'Config link copied')">__IC_copy__Copy config</button></div>
-    <div class="qc"><b>Subscription</b><div class="qi"><img id="qrB" alt="Subscription QR"></div><p id="qrBt"></p><button class="btn sm" onclick="copyText(qrBt.textContent,'Subscription copied')">__IC_copy__Copy subscription</button></div>
-  </div></div>
+  <div class="mb"><div class="qrs" id="qrGrid"></div></div>
 </div></div>
 
 <div id="ipModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="ipTitle"><div class="sheet" tabindex="-1" style="--w:760px">
@@ -296,7 +325,7 @@ DASH_BODY = r"""<body>
 
 <div id="connModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="coTitle"><div class="sheet" tabindex="-1" style="--w:720px">
   <div class="mh"><div><h3 id="coTitle">Live connections</h3><p>Sessions open right now, refreshed every 3 seconds.</p></div><button class="ib" onclick="closeModal('connModal')" aria-label="Close">__IC_x__</button></div>
-  <div class="mb"><div class="tw"><table><thead><tr><th>Config</th><th>Client IP</th><th>Since</th><th class="r">Down</th><th class="r">Up</th></tr></thead><tbody id="connBody"></tbody></table></div></div>
+  <div class="mb"><div class="tw"><table><thead><tr><th>Config</th><th>Protocol</th><th>Client IP</th><th>Since</th><th class="r">Down</th><th class="r">Up</th></tr></thead><tbody id="connBody"></tbody></table></div></div>
   <div class="mf"><button class="btn" onclick="closeModal('connModal')">Close</button></div>
 </div></div>
 
@@ -324,29 +353,22 @@ DASH_BODY = r"""<body>
   <div class="mf"><button class="btn" onclick="closeModal('setModal')">Cancel</button><button class="btn pri" id="sGo" onclick="changePw()">Update password</button></div>
 </div></div>
 
-<div id="askModal" class="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="askTitle"><div class="sheet" tabindex="-1">
-  <div class="mb" style="gap:12px;padding:26px"><div class="bdg" id="askBdg">__IC_alert__</div><h3 id="askTitle" style="font-size:22px;font-weight:900;letter-spacing:-.02em">Are you sure?</h3><p id="askMsg" class="mut"></p></div>
-  <div class="mf"><button class="btn" id="askNo">Cancel</button><button class="btn pri" id="askYes">Confirm</button></div>
-</div></div>
-
+__ASK__
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 """
 
 DASH_JS = r"""
-var STATE={links:[],filter:'all',q:'',stats:null,dirty:{},cur:null};
+var STATE={links:[],filter:'all',proto:'all',q:'',stats:null,cur:null,lastNet:[],lastSer:[]};
 var errOf=function(r,d){return r.json().then(function(j){return j.detail||d;},function(){return d;});};
-var focusTrap=null;
+var PROTOS=['vless','trojan','vmess','ss'];
+function lnk(l){return l.primary_link||l.vless_link||l.trojan_link||'';}
 
-/* ---------- modals ---------- */
-function openModal(id){var m=$(id);if(!m)return;m._from=document.activeElement;m.classList.add('open');document.body.classList.add('lock');setTimeout(function(){var s=m.querySelector('.sheet');if(s)s.focus();},40);
-  if(id==='ipModal')loadIps();if(id==='healthModal')loadHealthTargets();if(id==='connModal')loadConns();if(id==='dbModal')refreshDbInfo();if(id==='setModal'){['sCur','sNew','sNew2'].forEach(function(k){$(k).value='';});$('sErr').classList.add('hidden');}
-  if(id==='dbModal'){clearPick();}}
-function closeModal(id){var m=$(id);if(!m)return;m.classList.remove('open');if(!$$('.modal.open').length)document.body.classList.remove('lock');if(m._from&&m._from.focus)m._from.focus();if(id==='connModal'&&connT)clearInterval(connT);}
-document.addEventListener('pointerdown',function(e){if(e.target.classList&&e.target.classList.contains('modal'))closeModal(e.target.id);});
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){var o=$$('.modal.open');if(o.length)closeModal(o[o.length-1].id);}});
-function ask(title,msg,ok,danger){return new Promise(function(res){$('askTitle').textContent=title;$('askMsg').textContent=msg;var y=$('askYes');y.textContent=ok||'Confirm';y.className='btn '+(danger?'bad':'pri');$('askBdg').className='bdg'+(danger?' bad':'');
-  var done=function(v){$('askYes').onclick=$('askNo').onclick=null;closeModal('askModal');res(v);};
-  $('askYes').onclick=function(){done(true);};$('askNo').onclick=function(){done(false);};openModal('askModal');$('askYes').focus();});}
+/* ---------- modal hooks ---------- */
+window.onModalOpen=function(id){
+  if(id==='ipModal')loadIps();if(id==='healthModal')loadHealthTargets();if(id==='connModal')loadConns();if(id==='dbModal'){refreshDbInfo();clearPick();}
+  if(id==='setModal'){['sCur','sNew','sNew2'].forEach(function(k){$(k).value='';});$('sErr').classList.add('hidden');}};
+window.onModalClose=function(id){if(id==='connModal'&&connT){clearInterval(connT);connT=null;}};
+window.onThemeChange=function(){drawScope();if(STATE.lastNet.length||STATE.lastSer.length)redrawCharts();};
 
 /* ---------- header / system ---------- */
 var scopeHist=[];
@@ -363,11 +385,11 @@ drawScope();
 function lineChart(svgId,points,opts){
   var s=$(svgId);if(!s)return;var W=600,H=170,pad=8;var keys=opts.keys;var max=1;
   points.forEach(function(p){keys.forEach(function(k){max=Math.max(max,p[k[0]]||0);});});
-  var out='<defs><linearGradient id="g_'+svgId+'" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="'+getCss('--sig')+'" stop-opacity=".35"/><stop offset="1" stop-color="'+getCss('--sig')+'" stop-opacity="0"/></linearGradient></defs>';
+  var out='';
   for(var g=1;g<4;g++)out+='<line x1="0" x2="'+W+'" y1="'+(g*H/4)+'" y2="'+(g*H/4)+'" stroke="'+getCss('--line')+'" stroke-dasharray="3 5"/>';
   if(points.length<2){s.innerHTML=out+'<text x="300" y="90" text-anchor="middle" fill="'+getCss('--mut')+'" font-size="14">collecting samples…</text>';return;}
   keys.forEach(function(k,ki){var d='';points.forEach(function(p,i){var x=i/(points.length-1)*W,y=H-pad-((p[k[0]]||0)/max)*(H-pad*2);d+=(i?' L':'M')+x.toFixed(1)+' '+y.toFixed(1);});
-    if(ki===0){out+='<path d="'+d+' L'+W+' '+H+' L0 '+H+'Z" fill="url(#g_'+svgId+')"/>';}
+    if(ki===0){out+='<path d="'+d+' L'+W+' '+H+' L0 '+H+'Z" fill="'+getCss('--sig')+'" fill-opacity=".14"/>';}
     out+='<path d="'+d+'" fill="none" stroke="'+getCss(k[1])+'" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>';});
   s.innerHTML=out;}
 function barChart(svgId,series){
@@ -377,29 +399,34 @@ function barChart(svgId,series){
     out+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+(i===n-1?getCss('--sig'):getCss('--navy'))+'" opacity="'+(i===n-1?1:.55)+'"><title>'+p.hour+' · '+fmtBytes(p.bytes)+'</title></rect>';
     if(i%4===0)out+='<text x="'+(x).toFixed(1)+'" y="'+(H-2)+'" font-size="12" fill="'+getCss('--mut')+'" font-family="JetBrains Mono,monospace">'+p.hour+'</text>';});
   s.innerHTML=out;}
+function redrawCharts(){lineChart('netChart',STATE.lastNet.map(function(x){return {rx:x.rx,tx:x.tx};}),{keys:[['rx','--sig'],['tx','--navy']]});barChart('serChart',STATE.lastSer);}
 
-var prevNet=null;
 function renderStats(d){
   STATE.stats=d;
   var tot=d.total_bytes||0,u=fmtBytes(tot).split(' ');
   $('bigTotal').innerHTML=u[0]+'<small>'+u[1]+'</small>';
   $('bigSub').textContent=(d.active_connections||0)+' live session'+((d.active_connections||0)===1?'':'s')+' · '+(d.total_requests||0)+' requests since boot';
+  var pr=d.protocols||{};
+  $('pmix').innerHTML=PROTOS.map(function(p){return protoPill(p)+'<span class="tag" style="height:24px">'+(pr[p]||0)+' configs</span>';}).join('');
   $('kConn').textContent=d.active_connections||0;$('kIps').textContent=d.online_ips||0;
   $('kActive').innerHTML=(d.active_links||0)+'<em> / '+(d.links_count||0)+'</em>';
   $('kUp').textContent=d.uptime||'--';$('foot').textContent='uptime '+(d.uptime||'--');
-  $('serTotal').textContent=fmtBytes(d.series_24h.reduce(function(a,x){return a+x.bytes;},0))+' in 24h';
-  barChart('serChart',d.series_24h);
-  var net=d.net||[];lineChart('netChart',net.map(function(x){return {rx:x.rx,tx:x.tx};}),{keys:[['rx','--sig'],['tx','--navy']]});
+  var ser=d.series_24h||[];STATE.lastSer=ser;
+  $('serTotal').textContent=fmtBytes(ser.reduce(function(a,x){return a+x.bytes;},0))+' in 24h';
+  var net=d.net||[];STATE.lastNet=net;
+  barChart('serChart',ser);
+  lineChart('netChart',net.map(function(x){return {rx:x.rx,tx:x.tx};}),{keys:[['rx','--sig'],['tx','--navy']]});
   if(net.length)pushScope(net[net.length-1].rx+net[net.length-1].tx);
   var x=d.xray||{};$('xrayText').textContent=x.running?'Xray '+(x.version||'').replace(/^Xray /,'').split(' ')[0]:'Xray down';
   $('xrayLamp').className='lamp '+(x.running?'live':'cut');
-  var sy=function(id,pct,detail){$(id).innerHTML=vu(pct,24);};
+  var sy=function(id,pct){$(id).innerHTML=vu(pct,24);};
   $('mCpu').textContent=Math.round(d.cpu_percent)+'%';sy('vCpu',d.cpu_percent);$('pCpu').textContent=d.cpu_cores+' cores · load '+(d.load_avg||[]).join(' / ');
   $('mRam').textContent=Math.round(d.ram_percent)+'%';sy('vRam',d.ram_percent);$('pRam').textContent=(d.ram_used_mb/1024).toFixed(2)+' / '+(d.ram_total_mb/1024).toFixed(2)+' GB';
   $('mSwap').textContent=Math.round(d.swap_percent)+'%';sy('vSwap',d.swap_percent);$('pSwap').textContent=(d.swap_used_mb/1024).toFixed(2)+' / '+(d.swap_total_mb/1024).toFixed(2)+' GB';
   $('mDisk').textContent=Math.round(d.disk_percent)+'%';sy('vDisk',d.disk_percent);$('pDisk').textContent=d.disk_used_gb.toFixed(1)+' / '+d.disk_total_gb.toFixed(1)+' GB';
   var st=d.states||{};
   $('cActive').textContent=st.active||0;$('cDisabled').textContent=st.disabled||0;$('cExpired').textContent=st.expired||0;$('cDepleted').textContent=st.depleted||0;
+  $('cVless').textContent=pr.vless||0;$('cTrojan').textContent=pr.trojan||0;$('cVmess').textContent=pr.vmess||0;$('cSs').textContent=pr.ss||0;
 }
 async function pollStats(){try{var r=await api('/stats');if(r.ok)renderStats(await r.json());}catch(e){}}
 
@@ -411,6 +438,7 @@ function stateTag(l){
   if(l.state==='depleted')return '<span class="chip" style="background:var(--amb-soft);color:var(--amb-ink)">Out of data</span>';
   return '';}
 function lampFor(l){return l.state==='active'?(l.live_connections>0?'live':'on'):(l.state==='depleted'||l.state==='expired'?'warn':'off');}
+function protoPills(l){return (l.protocols||['vless']).map(protoPill).join('');}
 function rowHtml(l){
   var lim=l.limit_bytes>0,pct=lim?Math.min(100,l.used_bytes/l.limit_bytes*100):0;
   var meta=[];
@@ -421,8 +449,8 @@ function rowHtml(l){
   if(l.applied_ips_count)meta.push('<span>Pinned IPs <b>'+l.applied_ips_count+'</b></span>');
   if(l.last_used)meta.push('<span>Seen <b>'+new Date(l.last_used).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</b></span>');
   var sw='<label class="sw" title="'+(l.is_default?'Protected':(l.active?'Disable':'Enable'))+'"><input type="checkbox" data-t '+(l.active?'checked':'')+' '+(l.is_default?'disabled':'')+' aria-label="'+esc(l.label)+' enabled"><i></i></label>';
-  var acts='<button class="ib sm" data-a="copy" title="Copy config link" aria-label="Copy config link">'+ic('copy')+'</button>'
-    +'<button class="ib sm" data-a="qr" title="Show QR" aria-label="Show QR">'+ic('qr')+'</button>'
+  var acts='<button class="ib sm" data-a="copy" title="Copy link" aria-label="Copy link">'+ic('copy')+'</button>'
+    +'<button class="ib sm" data-a="qr" title="Share" aria-label="Share">'+ic('share')+'</button>'
     +'<button class="ib sm" data-a="open" title="Subscription page" aria-label="Subscription page">'+ic('open')+'</button>';
   if(!l.is_default)acts+='<button class="ib sm" data-a="edit" title="Edit" aria-label="Edit">'+ic('edit')+'</button>'
     +'<button class="ib sm" data-a="reset" title="Reset traffic" aria-label="Reset traffic">'+ic('reset')+'</button>'
@@ -430,34 +458,35 @@ function rowHtml(l){
   else acts+='<span class="tag acc" style="margin-left:6px">Protected</span>';
   return '<article class="line'+(l.state!=='active'?' off':'')+(l.is_default?' def':'')+'" data-uuid="'+esc(l.uuid)+'">'
     +'<div style="display:flex;align-items:center;gap:6px"><span class="lamp '+lampFor(l)+'"></span></div>'
-    +'<div style="min-width:0"><div class="name"><b>'+esc(l.label)+'</b>'+stateTag(l)+(l.is_default?'<span class="tag amb">default</span>':'')+(l.fingerprint&&l.fingerprint!=='chrome'?'<span class="tag">'+esc(l.fingerprint)+'</span>':'')+'</div>'
+    +'<div style="min-width:0"><div class="name"><b>'+esc(l.label)+'</b>'+protoPills(l)+stateTag(l)+(l.is_default?'<span class="tag amb">default</span>':'')+(l.fingerprint&&l.fingerprint!=='chrome'?'<span class="tag">'+esc(l.fingerprint)+'</span>':'')+'</div>'
     +'<div class="meta">'+meta.join('')+'</div>'
     +'<div class="usage">'+vu(lim?pct:0,28,!lim)+'<span class="mono">'+fmtBytes(l.used_bytes)+' / '+(lim?fmtBytes(l.limit_bytes):'∞')+'</span></div></div>'
     +'<div class="acts">'+sw+acts+'</div></article>';}
 function filtered(){var q=STATE.q.trim().toLowerCase();return STATE.links.filter(function(l){
   if(STATE.filter!=='all'&&l.state!==STATE.filter)return false;
+  if(STATE.proto!=='all'&&(l.protocols||[]).indexOf(STATE.proto)<0)return false;
   if(q&&String(l.label).toLowerCase().indexOf(q)<0&&String(l.note||'').toLowerCase().indexOf(q)<0)return false;return true;});}
 function renderList(){
   var items=filtered(),box=$('lines');
-  if(!STATE.links.length){box.innerHTML='<div class="empty"><b>No configs yet</b>Create your first line and share it as a subscription.</div>';return;}
+  if(!STATE.links.length){box.innerHTML='<div class="empty">'+ic('plus')+'<b>No configs yet</b>Create your first line and share it as a subscription.</div>';return;}
   if(!items.length){box.innerHTML='<div class="empty"><b>Nothing matches</b>Try another filter or search term.</div>';return;}
   box.innerHTML=items.map(rowHtml).join('');
   var on=STATE.links.filter(function(l){return l.state==='active';}).length;
   $('cfgSub').textContent=on+' of '+STATE.links.length+' lines live. A lit lamp means it\'s carrying traffic right now.';
   $('cAll').textContent=STATE.links.length;
 }
-async function loadLinks(){try{var r=await api('/api/links');if(!r.ok)throw 0;var d=await r.json();STATE.links=d.links||[];
-  var n=STATE.links.length;$('cAll').textContent=n;renderList();}catch(e){}}
+async function loadLinks(){try{var r=await api('/api/links');if(!r.ok)throw 0;var d=await r.json();STATE.links=d.links||[];renderList();}catch(e){}}
 
 $('q').addEventListener('input',function(){STATE.q=this.value;renderList();});
 $$('#filters .fchip').forEach(function(b){b.onclick=function(){STATE.filter=b.dataset.f;$$('#filters .fchip').forEach(function(x){x.setAttribute('aria-pressed',x===b);});renderList();};});
+$$('#pfilters .fchip').forEach(function(b){b.onclick=function(){STATE.proto=b.dataset.p;$$('#pfilters .fchip').forEach(function(x){x.setAttribute('aria-pressed',x===b);});renderList();};});
 
 $('lines').addEventListener('click',function(e){
   var b=e.target.closest('[data-a]');if(!b)return;var row=b.closest('.line');var l=STATE.links.find(function(x){return x.uuid===row.dataset.uuid;});if(!l)return;
   var a=b.dataset.a;
-  if(a==='copy')copyText(l.vless_link,'Config link copied');
+  if(a==='copy')copyText(lnk(l),'Link copied');
   else if(a==='qr')showQr(l);
-  else if(a==='open')window.open(l.sub_url.replace(/\/sub\//,'/sub/')+'/info','_blank','noopener');
+  else if(a==='open')window.open(l.info_url||(l.sub_url+'/info'),'_blank','noopener');
   else if(a==='edit')editConfig(l);
   else if(a==='reset')resetTraffic(l);
   else if(a==='del')deleteConfig(l);
@@ -471,21 +500,25 @@ $('lines').addEventListener('change',function(e){
 /* ---------- config form ---------- */
 var FPS=['chrome','firefox','safari','ios','android','edge','360','qq','random','randomized'];
 (function(){$('cFp').innerHTML=FPS.map(function(f){return '<option value="'+f+'">'+f+'</option>';}).join('');})();
-function resetForm(){$('cUid').value='';$('cLabel').value='';$('cFp').value='chrome';$('cLimit').value='0';$('cLimitUnit').value='GB';$('cExpDays').value='0';$('cExpDate').value='';$('cIpLimit').value='0';$('cSpeed').value='0';$('cSpeedUnit').value='MBIT';$('cAlpn').value='';$('cNote').value='';$('cfgErr').classList.add('hidden');}
-function newConfig(){resetForm();STATE.cur=null;$('cfgTitle').textContent='New config';$('cfgSub2').textContent='A VLESS + WebSocket line with its own quota and limits.';$('cfgSave').textContent='Create config';$('cExpWrap').style.display='';$('cExpDateWrap').style.display='none';openModal('cfgModal');$('cLabel').focus();}
-function editConfig(l){resetForm();STATE.cur=l;$('cUid').value=l.uuid;$('cLabel').value=l.label;$('cFp').value=l.fingerprint||'chrome';$('cAlpn').value=l.alpn||'';$('cNote').value=l.note||'';
+function setProtos(list){$('pV').checked=list.indexOf('vless')>=0;$('pT').checked=list.indexOf('trojan')>=0;$('pM').checked=list.indexOf('vmess')>=0;$('pS').checked=list.indexOf('ss')>=0;}
+function getProtos(){var o=[];if($('pV').checked)o.push('vless');if($('pT').checked)o.push('trojan');if($('pM').checked)o.push('vmess');if($('pS').checked)o.push('ss');return o;}
+function resetForm(){$('cUid').value='';$('cLabel').value='';$('cFp').value='chrome';$('cLimit').value='0';$('cLimitUnit').value='GB';$('cExpDays').value='0';$('cExpDate').value='';$('cIpLimit').value='0';$('cSpeed').value='0';$('cSpeedUnit').value='MBIT';$('cAlpn').value='';$('cNote').value='';setProtos(['vless','trojan']);$('cfgErr').classList.add('hidden');}
+function newConfig(){resetForm();STATE.cur=null;$('cfgTitle').textContent='New config';$('cfgSub2').textContent='A tunnel line with its own quota and limits.';$('cfgSave').textContent='Create config';$('cExpWrap').style.display='';$('cExpDateWrap').style.display='none';openModal('cfgModal');$('cLabel').focus();}
+function editConfig(l){resetForm();STATE.cur=l;$('cUid').value=l.uuid;$('cLabel').value=l.label;$('cFp').value=l.fingerprint||'chrome';$('cAlpn').value=l.alpn||'';$('cNote').value=l.note||'';setProtos(l.protocols||['vless']);
   var gb=l.limit_bytes/1073741824;$('cLimit').value=l.limit_bytes?(gb>=1?+gb.toFixed(2):+(l.limit_bytes/1048576).toFixed(1)):0;$('cLimitUnit').value=l.limit_bytes&&gb<1?'MB':'GB';
   $('cIpLimit').value=l.ip_limit||0;var sp=l.speed_limit_bytes?(l.speed_limit_bytes*8/1000000):0;$('cSpeed').value=+sp.toFixed(2);$('cSpeedUnit').value='MBIT';
   $('cExpDate').value=l.expires_at?l.expires_at.slice(0,10):'';$('cExpWrap').style.display='none';$('cExpDateWrap').style.display='';
   $('cfgTitle').textContent='Edit '+l.label;$('cfgSub2').textContent='Changes apply immediately to live connections.';$('cfgSave').textContent='Save changes';openModal('cfgModal');$('cLabel').focus();}
 function buildBody(){
   var v=function(id){return $(id).value;};
+  var protos=getProtos();
   var b={label:v('cLabel').trim()||'Config',fingerprint:v('cFp'),alpn:v('cAlpn').trim(),note:v('cNote').trim(),
-    limit_value:parseFloat(v('cLimit'))||0,limit_unit:v('cLimitUnit'),ip_limit:parseInt(v('cIpLimit'),10)||0,
+    protocols:protos,limit_value:parseFloat(v('cLimit'))||0,limit_unit:v('cLimitUnit'),ip_limit:parseInt(v('cIpLimit'),10)||0,
     speed_limit_value:parseFloat(v('cSpeed'))||0,speed_limit_unit:v('cSpeedUnit')};
   if(STATE.cur){ // only send what changed, so an edit never resets the clock or truncates values
     var c=STATE.cur,out={};
     if(b.label!==c.label)out.label=b.label;
+    if(b.protocols.join()!==(c.protocols||['vless']).join())out.protocols=b.protocols;
     if(b.fingerprint!==(c.fingerprint||'chrome'))out.fingerprint=b.fingerprint;
     if(b.alpn!==(c.alpn||''))out.alpn=b.alpn;
     if(b.note!==(c.note||''))out.note=b.note;
@@ -497,6 +530,7 @@ function buildBody(){
   b.expires_days=parseInt(v('cExpDays'),10)||0;return b;}
 async function saveConfig(){
   var btn=$('cfgSave'),er=$('cfgErr');er.classList.add('hidden');
+  if(!getProtos().length){er.textContent='Pick at least one protocol.';er.classList.remove('hidden');return;}
   var body=buildBody();
   if(STATE.cur&&!Object.keys(body).length){closeModal('cfgModal');toast('Nothing to change','');return;}
   btn.disabled=true;var was=btn.textContent;btn.textContent='Saving…';
@@ -511,18 +545,23 @@ async function resetTraffic(l){
   if(!await ask('Reset traffic?','Usage for '+l.label+' goes back to zero and it comes back online if it had run out of data.','Reset',true))return;
   try{var r=await api('/api/links/'+l.uuid+'/reset-traffic','POST');if(!r.ok)throw 0;toast('Traffic reset','ok');loadLinks();}catch(e){toast('Could not reset','err');}}
 async function deleteConfig(l){
-  if(!await ask('Delete '+l.label+'?','Its link stops working immediately for every device. This cannot be undone.','Delete',true))return;
+  if(!await ask('Delete '+l.label+'?','Its links stop working immediately for every device. This cannot be undone.','Delete',true))return;
   try{var r=await api('/api/links/'+l.uuid,'DELETE');if(!r.ok)throw new Error(await errOf(r,'Could not delete'));toast('Config deleted','ok');loadLinks();}catch(e){toast(e.message,'err');}}
 
 /* ---------- share / QR ---------- */
 async function qrFor(data){var r=await api('/api/qr?size=320&data='+encodeURIComponent(data));var j=await r.json();return j.qr;}
 async function showQr(l){
-  $('qrName').textContent=l.label;$('qrAt').textContent=l.vless_link;$('qrBt').textContent=l.sub_url;
-  $('qrA').removeAttribute('src');$('qrB').removeAttribute('src');openModal('qrModal');
-  try{$('qrA').src=await qrFor(l.vless_link);$('qrB').src=await qrFor(l.sub_url);}catch(e){toast('Could not draw QR','err');}}
+  $('qrName').textContent=l.label;
+  var grid=$('qrGrid');
+  var cards=(l.variants||[]).filter(function(x){return x.where==='Domain';}).map(function(x){
+    return {title:PROTO_META[x.protocol]?PROTO_META[x.protocol].n:x.protocol,url:x.url,pill:protoPill(x.protocol),cap:'Copy '+(PROTO_META[x.protocol]?PROTO_META[x.protocol].n:'link')};});
+  cards.push({title:'Subscription',url:l.sub_url,pill:'<b>Subscription</b>',cap:'Copy subscription'});
+  grid.innerHTML=cards.map(function(c,i){return '<div class="qc">'+c.pill+'<div class="qi"><img id="qr'+i+'" alt="'+esc(c.title)+' QR"></div><p>'+esc(c.url)+'</p><button class="btn sm" data-copy-i="'+i+'">'+ic('copy')+esc(c.cap)+'</button></div>';}).join('');
+  $$('button[data-copy-i]',grid).forEach(function(b){b.onclick=function(){copyText(cards[+b.dataset.copyI].url,'Copied');};});
+  openModal('qrModal');
+  try{for(var i=0;i<cards.length;i++){$('qr'+i).src=await qrFor(cards[i].url);}}catch(e){toast('Could not draw QR','err');}}
 
 /* ---------- clean IPs ---------- */
-var IP_SEL=[];
 async function loadIps(){
   try{
     var d=await (await api('/api/domain/check')).json();
@@ -547,7 +586,7 @@ async function applyIps(){
 async function loadHealthTargets(){
   $('hRes').innerHTML='';$('hStatus').textContent='';
   try{var t=await (await api('/api/links')).json();
-    $('hList').innerHTML=(t.links||[]).map(function(l){return '<label class="opt"><input type="checkbox" class="hc" value="'+esc(l.uuid)+'" checked><span class="grow">'+esc(l.label)+'</span>'+stateTag(l)+'</label>';}).join('')||'<p class="hint" style="padding:12px">No configs.</p>';
+    $('hList').innerHTML=(t.links||[]).map(function(l){return '<label class="opt"><input type="checkbox" class="hc" value="'+esc(l.uuid)+'" checked><span class="grow">'+esc(l.label)+'</span>'+protoPills(l)+stateTag(l)+'</label>';}).join('')||'<p class="hint" style="padding:12px">No configs.</p>';
     syncHealth();}catch(e){toast('Could not load configs','err');}}
 function syncHealth(){var n=$$('.hc:checked').length;$('hGo').disabled=!n;$('hStatus').textContent=n+' selected';}
 async function runHealth(){
@@ -565,7 +604,7 @@ async function runHealth(){
 var connT=null;
 async function loadConns(){
   var tick=async function(){try{var d=await (await api('/api/connections')).json();var c=d.connections||[];
-    $('connBody').innerHTML=c.length?c.map(function(x){return '<tr><td>'+esc(x.label)+'</td><td class="mono">'+esc(x.ip)+'</td><td class="mono">'+new Date(x.since).toLocaleTimeString()+'</td><td class="r mono">'+fmtBytes(x.down)+'</td><td class="r mono">'+fmtBytes(x.up)+'</td></tr>';}).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--mut);padding:26px">Nobody is connected right now.</td></tr>';}catch(e){}};
+    $('connBody').innerHTML=c.length?c.map(function(x){return '<tr><td>'+esc(x.label)+'</td><td>'+protoPill(x.proto||'vless')+'</td><td class="mono">'+esc(x.ip)+'</td><td class="mono">'+new Date(x.since).toLocaleTimeString()+'</td><td class="r mono">'+fmtBytes(x.down)+'</td><td class="r mono">'+fmtBytes(x.up)+'</td></tr>';}).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--mut);padding:26px">Nobody is connected right now.</td></tr>';}catch(e){}};
   await tick();if(connT)clearInterval(connT);connT=setInterval(tick,3000);}
 
 /* ---------- backup ---------- */
@@ -606,32 +645,34 @@ setInterval(pollStats,5000);setInterval(loadLinks,15000);
 
 LOGS_CSS = r"""
 .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
-header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
-.bar{height:64px;display:flex;align-items:center;gap:12px}
-.brand{display:flex;align-items:center;gap:11px}.brand b{font-weight:900;font-size:18px}
+header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 84%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.bar{min-height:68px;padding:12px 0;display:flex;align-items:center;flex-wrap:wrap;gap:12px}
 .sp{margin-left:auto}
-.h1{font-size:34px;font-weight:900;letter-spacing:-.03em;margin:26px 0 6px}
+.h1{font-size:36px;font-weight:900;letter-spacing:-.03em;margin:28px 0 6px}
+@media(max-width:560px){.h1{font-size:28px;margin-top:20px}.toolbar .btn{margin-left:auto}}
 .lead{color:var(--mut);margin-bottom:18px}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
-.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:11px;overflow:hidden}
-.seg button{height:40px;padding:0 14px;font-weight:700;font-size:14px;color:var(--mut);background:var(--card)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;background:var(--card)}
+.seg button{height:40px;padding:0 14px;font-weight:700;font-size:14px;color:var(--mut)}
 .seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
 .seg button+button{border-left:1.5px solid var(--line)}
-.term{background:var(--sunk);border:1.5px solid var(--line);border-radius:16px;padding:14px 16px;height:calc(100dvh - 300px);min-height:360px;overflow:auto;font:13px/1.65 var(--mono);box-shadow:var(--shadow)}
+.term{background:var(--sunk);border:1.5px solid var(--line);border-radius:16px;padding:14px 16px;height:calc(100dvh - 300px);min-height:360px;overflow:auto;font:13px/1.65 var(--mono);box-shadow:var(--sh2)}
 .ln{display:grid;grid-template-columns:86px 62px minmax(0,1fr);gap:12px;padding:2px 0;white-space:pre-wrap;word-break:break-word}
+@media(max-width:560px){.ln{grid-template-columns:64px minmax(0,1fr);gap:8px}.ln .lv{display:none}.term{padding:12px}}
 .ln time{color:var(--mut)}
 .lv{font-weight:600;text-transform:uppercase;font-size:11.5px;letter-spacing:.06em;align-self:start;padding-top:2px}
 .lv.info{color:var(--navy)}.lv.warning,.lv.warn{color:var(--amb-ink)}.lv.error,.lv.err{color:var(--red)}.lv.ok{color:var(--acc)}
-.live{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--mut)}
+.live{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--mut);cursor:pointer}
 .empty{color:var(--mut);padding:20px}
-.pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:99px;font:600 13px var(--mono);background:var(--sunk)}
+.pill{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:99px;font:600 13px var(--mono);background:var(--sunk)}
 """
 
 LOGS_BODY = r"""<body>
 <header><div class="wrap bar">
-  <div class="brand"><span class="lamp live"></span><b>MX-UI logs</b></div>
+  __BRAND__
   <div class="sp"></div>
   <button class="btn sm ghost" onclick="location.href='/dashboard'">__IC_back__Dashboard</button>
+  __THEME__
 </div></header>
 <main class="wrap">
   <h1 class="h1">Logs</h1>
@@ -646,11 +687,12 @@ LOGS_BODY = r"""<body>
   </div>
   <div class="term" id="term" role="log" aria-live="off"></div>
 </main>
+__ASK__
 <div id="toast" class="toast" role="status"></div>
 """
 
 LOGS_JS = r"""
-var LV='',SRC='core',TIMER=null;
+var LV='',SRC='core';
 $$('[data-l]').forEach(function(b){b.onclick=function(){LV=b.dataset.l;$$('[data-l]').forEach(function(x){x.setAttribute('aria-pressed',x===b);});load();};});
 $$('[data-s]').forEach(function(b){b.onclick=function(){SRC=b.dataset.s;$$('[data-s]').forEach(function(x){x.setAttribute('aria-pressed',x===b);});load();};});
 function row(t,lv,m){var d=t?new Date(t):null;var ts=d&&!isNaN(d)?d.toLocaleTimeString([],{hour12:false}):(t||'');return '<div class="ln"><time>'+esc(ts)+'</time><span class="lv '+esc(lv||'info')+'">'+esc(lv||'info')+'</span><span>'+esc(m)+'</span></div>';}
@@ -672,8 +714,7 @@ async function load(){
 }
 async function clearLogs(){if(!await ask('Clear logs?','Core and panel logs are wiped from memory.','Clear',true))return;await api('/api/logs/clear','POST');load();toast('Logs cleared','ok');}
 function tick(){if($('auto').checked)load();}
-$('auto').onchange=function(){};
-load();TIMER=setInterval(tick,2500);
+load();setInterval(tick,2500);
 """
 
 
@@ -682,8 +723,15 @@ def _icons(s: str) -> str:
     return re.sub(r"__IC_(\w+?)__", lambda m: ic(m.group(1)), s)
 
 
-DASHBOARD_HTML = page("MX-UI · Dashboard", DASH_CSS,
-                      _icons(SPRITE + DASH_BODY) + "<script>" + UTIL_JS + DASH_JS + "</script></body></html>")
+def _body(tpl: str, sub: str) -> str:
+    from pages import THEME_BTN as TB
+    return (tpl.replace("__BRAND__", brand(sub))
+               .replace("__THEME__", TB)
+               .replace("__ASK__", ASK_MODAL))
 
-LOGS_HTML = page("MX-UI · Logs", LOGS_CSS,
-                 _icons(SPRITE + LOGS_BODY) + "<script>" + UTIL_JS + LOGS_JS + "</script></body></html>")
+
+DASHBOARD_HTML = page("MX-UI · Dashboard", DASH_CSS + MODAL_CSS,
+                      _icons(SPRITE + _body(DASH_BODY, "v2.2.0")) + "<script>" + UTIL_JS + DASH_JS + "</script></body></html>")
+
+LOGS_HTML = page("MX-UI · Logs", LOGS_CSS + MODAL_CSS,
+                 _icons(SPRITE + _body(LOGS_BODY, "logs")) + "<script>" + UTIL_JS + LOGS_JS + "</script></body></html>")

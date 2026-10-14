@@ -1,4 +1,9 @@
-# xray_manager.py — Xray Core control plane (VLESS-WS)
+# xray_manager.py — Xray Core control plane (VLESS / Trojan / VMess / Shadowsocks over WebSocket)
+#
+# v2.1.0: a second inbound speaks Trojan over WebSocket on its own loopback port.
+# Both inbounds carry every config (user email = config uuid, so traffic accounting
+# stays per-config no matter which protocol the client picked); the panel's gateway
+# decides which protocols a config may actually use.
 #
 # What changed vs v1.0.0:
 #   * no more blocking time.sleep() inside the event loop (spawn runs in a thread)
@@ -23,8 +28,20 @@ from datetime import datetime
 from pathlib import Path
 
 WS_PORT = int(os.environ.get("XRAY_WS_PORT", 31801))
+TROJAN_WS_PORT = int(os.environ.get("XRAY_TROJAN_WS_PORT", 31802))
+VMESS_WS_PORT = int(os.environ.get("XRAY_VMESS_WS_PORT", 31803))
+SS_WS_PORT = int(os.environ.get("XRAY_SS_WS_PORT", 31804))
 API_PORT = int(os.environ.get("XRAY_API_PORT", 20085))
 INBOUND_TAG = "vless-ws"
+TROJAN_TAG = "trojan-ws"
+VMESS_TAG = "vmess-ws"
+SS_TAG = "ss-ws"
+INBOUND_TAGS = (INBOUND_TAG, TROJAN_TAG, VMESS_TAG, SS_TAG)
+TAG_FOR_PROTO = {"vless": INBOUND_TAG, "trojan": TROJAN_TAG, "vmess": VMESS_TAG, "ss": SS_TAG}
+PORTS = {INBOUND_TAG: WS_PORT, TROJAN_TAG: TROJAN_WS_PORT, VMESS_TAG: VMESS_WS_PORT, SS_TAG: SS_WS_PORT}
+PATHS = {INBOUND_TAG: "/ws", TROJAN_TAG: "/trojan", VMESS_TAG: "/vmess", SS_TAG: "/ss"}
+PROTOCOL_OF = {INBOUND_TAG: "vless", TROJAN_TAG: "trojan", VMESS_TAG: "vmess", SS_TAG: "shadowsocks"}
+SS_METHOD = "chacha20-ietf-poly1305"
 
 _LOG_BUF = deque(maxlen=1500)
 
@@ -39,7 +56,7 @@ _links = None
 _lock = None
 _logger = None
 _data_dir = Path(os.environ.get("DATA_DIR", "/data"))
-_known_uids: set = set()
+_known_users: dict = {}   # uuid -> trojan password currently loaded in the core
 _reload_pending = False
 _restart_count = 0
 _started_at = None
@@ -105,17 +122,61 @@ def _client(uid):
     return {"id": uid, "email": uid, "level": 0}
 
 
+def trojan_password(uid):
+    """Per-config Trojan password. Falls back to the uuid for pre-2.1 configs."""
+    link = (_links or {}).get(uid) or {}
+    return str(link.get("trojan_password") or uid)
+
+
+def ss_password(uid):
+    link = (_links or {}).get(uid) or {}
+    return str(link.get("ss_password") or uid)
+
+
+def _creds(uid):
+    return {"trojan": trojan_password(uid), "ss": ss_password(uid)}
+
+
+def _user_map():
+    return {uid: _creds(uid) for uid in list((_links or {}).keys())}
+
+
+def _client_for(tag, uid):
+    if tag == INBOUND_TAG:
+        return _client(uid)
+    if tag == TROJAN_TAG:
+        return {"password": trojan_password(uid), "email": uid, "level": 0}
+    if tag == VMESS_TAG:
+        return {"id": uid, "alterId": 0, "email": uid, "level": 0}
+    return {"method": SS_METHOD, "password": ss_password(uid), "email": uid, "level": 0}
+
+
+def _settings_for(tag, uids):
+    clients = [_client_for(tag, u) for u in uids]
+    if tag == INBOUND_TAG:
+        return {"clients": clients, "decryption": "none"}
+    if tag == SS_TAG:
+        return {"clients": clients, "network": "tcp,udp"}
+    return {"clients": clients}
+
+
 def _build_config():
-    clients = [_client(uid) for uid in list(_links.keys())]
+    uids = list((_links or {}).keys())
+    inbounds = []
+    for tag in INBOUND_TAGS:
+        # TLS is terminated by the platform edge (Railway) and the panel gateway,
+        # so every inbound here is plain WebSocket on loopback.
+        inbounds.append({"tag": tag, "listen": "127.0.0.1", "port": PORTS[tag],
+                         "protocol": PROTOCOL_OF[tag], "settings": _settings_for(tag, uids),
+                         "streamSettings": {"network": "ws", "wsSettings": {"path": PATHS[tag]}},
+                         "sniffing": {"enabled": False}})
+    inbounds.append({"tag": "api", "listen": "127.0.0.1", "port": API_PORT,
+                     "protocol": "dokodemo-door", "settings": {"address": "127.0.0.1"}})
     return {
         "log": {"loglevel": "warning"},
         # Railway containers can advertise a broken/slow IPv6 route. Prefer
-        # IPv4 for DNS answers and outbound connections so Google and other
-        # dual-stack sites do not sit on a long IPv6 fallback timeout.
-        "dns": {
-            "servers": ["1.1.1.1", "8.8.8.8"],
-            "queryStrategy": "UseIPv4",
-        },
+        # IPv4 for DNS answers and outbound connections.
+        "dns": {"servers": ["1.1.1.1", "8.8.8.8"], "queryStrategy": "UseIPv4"},
         "api": {"tag": "api", "services": ["StatsService", "HandlerService"]},
         "stats": {},
         "policy": {
@@ -123,19 +184,8 @@ def _build_config():
             "system": {"statsInboundUplink": True, "statsInboundDownlink": True},
         },
         "routing": {"rules": [{"type": "field", "inboundTag": ["api"], "outboundTag": "api"}]},
-        "inbounds": [
-            {"tag": INBOUND_TAG, "listen": "127.0.0.1", "port": WS_PORT, "protocol": "vless",
-             "settings": {"clients": clients, "decryption": "none"},
-             "streamSettings": {"network": "ws", "wsSettings": {"path": "/ws"}},
-             "sniffing": {"enabled": False}},
-            {"tag": "api", "listen": "127.0.0.1", "port": API_PORT,
-             "protocol": "dokodemo-door", "settings": {"address": "127.0.0.1"}},
-        ],
-        "outbounds": [{
-            "protocol": "freedom",
-            "tag": "direct",
-            "settings": {"domainStrategy": "UseIPv4"},
-        }],
+        "inbounds": inbounds,
+        "outbounds": [{"protocol": "freedom", "tag": "direct", "settings": {"domainStrategy": "UseIPv4"}}],
     }
 
 
@@ -177,7 +227,7 @@ def is_running():
 
 # ---------------------------------------------------------------- process (runs in a worker thread)
 def _spawn_sync():
-    global XRAY_PROC, _stdout_fh, _known_uids, _started_at
+    global XRAY_PROC, _stdout_fh, _known_users, _started_at
     try:
         binary = find_binary()
     except RuntimeError as e:
@@ -198,18 +248,19 @@ def _spawn_sync():
     kwargs = {"creationflags": 0x08000000} if sys.platform.startswith("win") else {}
     XRAY_PROC = subprocess.Popen([str(binary), "run", "-c", str(cfg_path)],
                                  stdout=_stdout_fh, stderr=subprocess.STDOUT, **kwargs)
-    _known_uids = set(_links.keys())
+    _known_users = _user_map()
     _started_at = time.time()
-    for _ in range(40):  # up to ~8s for the WS inbound to come up
+    for _ in range(40):  # up to ~8s for the inbounds to come up
         if XRAY_PROC.poll() is not None:
             _log("xray exited immediately (code %s)" % XRAY_PROC.returncode, "error")
             _dump_logs()
             return False
-        if _probe("127.0.0.1", WS_PORT):
-            _log("xray up pid=%s ws=127.0.0.1:%s api=%s" % (XRAY_PROC.pid, WS_PORT, API_PORT))
+        if all(_probe("127.0.0.1", PORTS[t]) for t in INBOUND_TAGS):
+            _log("xray up pid=%s inbounds=%s api=%s"
+                 % (XRAY_PROC.pid, ",".join("%s:%d" % (t, PORTS[t]) for t in INBOUND_TAGS), API_PORT))
             return True
         time.sleep(0.2)
-    _log("xray started but WS port %s is not listening" % WS_PORT, "warning")
+    _log("xray started but not every inbound port is listening", "warning")
     return XRAY_PROC.poll() is None
 
 
@@ -283,13 +334,11 @@ async def _api_call(subcmd, *args, timeout=6.0):
     return out.decode(errors="replace")
 
 
-async def _hot_add(uids):
-    cfg = {"inbounds": [{"tag": INBOUND_TAG, "protocol": "vless",
-                         "settings": {"clients": [_client(u) for u in uids], "decryption": "none"}}]}
+async def _adu(inbound):
     fd, path = tempfile.mkstemp(suffix=".json", dir=str(_data_dir))
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(cfg, f)
+            json.dump({"inbounds": [inbound]}, f)
         await _api_call("adu", path)
     finally:
         try:
@@ -298,15 +347,22 @@ async def _hot_add(uids):
             pass
 
 
+async def _hot_add(uids):
+    for tag in INBOUND_TAGS:
+        await _adu({"tag": tag, "protocol": PROTOCOL_OF[tag], "settings": _settings_for(tag, uids)})
+
+
 async def _hot_remove(uids):
-    await _api_call("rmu", "-tag=" + INBOUND_TAG, *uids)
+    for tag in INBOUND_TAGS:
+        await _api_call("rmu", "-tag=" + tag, *uids)
 
 
 async def sync_users():
     """Make Xray's user list match LINKS. Hot-patch first, reload as fallback."""
-    global _known_uids
-    current = set(_links.keys())
-    added, removed = current - _known_uids, _known_uids - current
+    global _known_users
+    current = _user_map()
+    added = sorted(u for u in current if _known_users.get(u) != current[u])   # new or rotated creds
+    removed = sorted(u for u in _known_users if u not in current)
     if not added and not removed:
         return
     await asyncio.to_thread(_write_config)  # keep the on-disk config truthful for restarts
@@ -314,11 +370,12 @@ async def sync_users():
         await reload_config()
         return
     try:
+        rotated = [u for u in added if u in _known_users]
+        if removed or rotated:
+            await _hot_remove(sorted(set(removed) | set(rotated)))
         if added:
-            await _hot_add(sorted(added))
-        if removed:
-            await _hot_remove(sorted(removed))
-        _known_uids = current
+            await _hot_add(added)
+        _known_users = current
         _log("users synced live (+%d / -%d)" % (len(added), len(removed)))
     except Exception as e:
         _log("live user sync failed (%s), doing full reload" % e, "warning")
@@ -358,7 +415,7 @@ async def _supervisor():
                 else:
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, 60)
-            elif set(_links.keys()) != _known_uids and not _reload_pending:
+            elif _user_map() != _known_users and not _reload_pending:
                 await sync_users()
         except Exception as e:
             _log("supervisor: " + str(e), "warning")
@@ -413,9 +470,9 @@ def port_status():
         "xray_version": XRAY_VERSION or "unknown",
         "xray_uptime_s": int(time.time() - _started_at) if (alive and _started_at) else 0,
         "restarts": _restart_count,
-        "users_loaded": len(_known_uids),
+        "users_loaded": len(_known_users),
         "listening": {
-            "127.0.0.1:%d (vless-ws)" % WS_PORT: _probe("127.0.0.1", WS_PORT),
+            **{"127.0.0.1:%d (%s)" % (PORTS[t], t): _probe("127.0.0.1", PORTS[t]) for t in INBOUND_TAGS},
             "127.0.0.1:%d (api)" % API_PORT: _probe("127.0.0.1", API_PORT),
         },
     }

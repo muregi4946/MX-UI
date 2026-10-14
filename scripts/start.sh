@@ -46,4 +46,4 @@ case $MODE in
 esac
 
 echo ""
-echo "💡 Need help? Check README_ENHANCED.md and DEPLOYMENT_GUIDE.md"
+echo "💡 Need help? See README.md and CHANGELOG.md"
