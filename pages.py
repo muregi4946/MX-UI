@@ -12,6 +12,8 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="
          '<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">')
 
 BASE_CSS = r"""
+.page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg);opacity:1;pointer-events:none}.page-loader.hide{animation:fadeout .28s ease forwards}.loader-mark{width:48px;height:48px;border-radius:14px;background:var(--acc);box-shadow:0 12px 30px rgba(0,183,167,.2);animation:scalein .34s ease both}.loader-bar{width:96px;height:3px;margin:16px auto 0;border-radius:99px;background:var(--line);overflow:hidden}.loader-bar i{display:block;width:45%;height:100%;border-radius:99px;background:var(--sig);animation:fadein .5s ease both}
+
 :root{
   --bg:#eef4f3;--card:#fcfefd;--card2:#f6faf9;--sunk:#e6eeec;--ink:#0f1e1d;--mut:#5a706d;
   --line:#d7e3e0;--line2:#c0d2ce;
@@ -62,7 +64,7 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke
 /* ---------- lamp: the signature status light ---------- */
 .lamp{--c:var(--seg-off);width:10px;height:10px;border-radius:50%;background:var(--c);flex:none;position:relative;box-shadow:inset 0 -1px 2px rgba(0,0,0,.25)}
 .lamp.on{--c:var(--sig)}
-.lamp.live{--c:var(--sig)}
+
 .lamp.warn{--c:var(--amb)}
 .lamp.cut{--c:var(--red)}
 .lamp.off{background:transparent;box-shadow:inset 0 0 0 2px var(--line2)}
@@ -115,8 +117,10 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .ic-sun{display:none}
 :root[data-theme=dark] .ic-sun{display:block}
 :root[data-theme=dark] .ic-moon{display:none}
-@keyframes scalein{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
-@keyframes scaleout{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.96)}}
+@keyframes scalein{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+@keyframes scaleout{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.94)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes fadeout{from{opacity:1}to{opacity:0}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 """
 
@@ -231,6 +235,9 @@ __CSS__</style>
 
 
 def page(title, css, body):
+    loader = '<div class="page-loader" aria-hidden="true"><div><div class="loader-mark"></div><div class="loader-bar"><i></i></div></div></div>'
+    loader_script = '<script>document.addEventListener("DOMContentLoaded",function(){var l=document.querySelector(".page-loader");if(l){requestAnimationFrame(function(){l.classList.add("hide");setTimeout(function(){l.remove();},320);});}});</script>'
+    body = loader + body + loader_script
     return (HEAD.replace("__TITLE__", title).replace("__FONTS__", FONTS).replace("__FAVICON__", FAVICON)
             .replace("__BASE__", BASE_CSS).replace("__CSS__", css) + body)
 
@@ -275,10 +282,10 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'){var o=$$('.
 
 # shared modal + dialog chrome (dashboard and logs both use it)
 MODAL_CSS = r"""
-.modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:18px;background:rgba(4,12,11,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .2s}.modal.open{opacity:1;pointer-events:auto;animation:scalein .22s ease both}
+.modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:18px;background:rgba(4,12,11,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .2s}
 .modal.open{opacity:1;pointer-events:auto}
-.sheet{width:min(var(--w,560px),100%);max-height:calc(100dvh - 36px);display:flex;flex-direction:column;background:var(--card);border:1.5px solid var(--line);border-radius:22px;box-shadow:var(--sh3);transform:translateY(14px) scale(.985);transition:transform .3s cubic-bezier(.2,.9,.3,1.1);outline:none}.modal.open .sheet{animation:scalein .28s cubic-bezier(.2,.8,.2,1) both}
-.modal.open .sheet{transform:none}
+.sheet{width:min(var(--w,560px),100%);max-height:calc(100dvh - 36px);display:flex;flex-direction:column;background:var(--card);border:1.5px solid var(--line);border-radius:22px;box-shadow:var(--sh3);transform:translateY(14px) scale(.985);transition:transform .3s cubic-bezier(.2,.9,.3,1.1);outline:none}
+.modal.open{opacity:1;pointer-events:auto}.modal.open .sheet{transform:none;animation:scalein .28s cubic-bezier(.2,.8,.2,1) both}
 .mh{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:22px 22px 0}
 .mh h3{font-size:24px;font-weight:900;letter-spacing:-.025em;line-height:1.1}
 .mh p{color:var(--mut);font-size:14.5px;margin-top:6px}
@@ -310,10 +317,10 @@ AUTH_CSS = r"""
 body{display:grid;place-items:center;padding:24px 18px;overflow-x:hidden;position:relative}
 .trace{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
 .trace .grid{stroke:var(--line);stroke-width:1;fill:none;opacity:.7}
-.trace .wave{fill:none;stroke:var(--sig);stroke-width:2.5;opacity:.5;filter:drop-shadow(0 0 6px var(--sig))}
+
 .trace .w2{stroke:var(--vio);opacity:.22;animation-delay:-4.5s;filter:none}
 
-.card{position:relative;z-index:1;width:100%;max-width:430px;background:var(--card);border:1.5px solid var(--line);border-radius:24px;padding:32px 30px 26px;box-shadow:var(--sh3);display:grid;gap:20px}
+.card{animation:scalein .42s cubic-bezier(.2,.8,.2,1) both;position:relative;z-index:1;width:100%;max-width:430px;background:var(--card);border:1.5px solid var(--line);border-radius:24px;padding:32px 30px 26px;box-shadow:var(--sh3);display:grid;gap:20px}
 .card::before{content:"";position:absolute;inset:0 0 auto;height:3px;border-radius:24px 24px 0 0;background:var(--acc)}
 .brand{display:flex;align-items:center;gap:12px}
 .brand .ver{margin-left:auto;font:600 12px var(--mono);color:var(--mut);background:var(--sunk);border-radius:99px;padding:5px 10px}
@@ -323,11 +330,11 @@ h1+p{color:var(--mut);margin-top:8px}
 .strength{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;height:6px}.strength i{border-radius:3px;background:var(--seg-off);transition:background .25s}
 .strength[data-s="1"] i:nth-child(-n+1){background:var(--red)}.strength[data-s="2"] i:nth-child(-n+2){background:var(--amb)}
 .strength[data-s="3"] i:nth-child(-n+3){background:var(--sig)}.strength[data-s="4"] i{background:var(--sig)}
-.shake{outline:2px solid var(--red);outline-offset:2px}
+
 .protos{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .foot{text-align:center;font-size:13.5px;color:var(--mut)}
 .themebtn{position:fixed;top:14px;right:14px;z-index:2}
-@media(max-width:480px){.card{padding:26px 20px 22px;border-radius:20px}h1{font-size:31px}.themebtn{top:auto;bottom:12px;right:12px}}
+@media(max-width:480px){.card{animation:scalein .42s cubic-bezier(.2,.8,.2,1) both;padding:26px 20px 22px;border-radius:20px}h1{font-size:31px}.themebtn{top:auto;bottom:12px;right:12px}}
 """
 
 

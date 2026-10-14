@@ -70,8 +70,8 @@ header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 8
 .fchip.vm[aria-pressed=true]{border-color:var(--navy);color:var(--navy)}.fchip.vm[aria-pressed=true] b{background:var(--navy);color:#fff}
 .fchip.ss[aria-pressed=true]{border-color:var(--amb-ink);color:var(--amb-ink)}.fchip.ss[aria-pressed=true] b{background:var(--amb);color:#1a1400}
 .lines{display:grid;gap:10px}
-.line{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;transition:border-color .2s,box-shadow .2s;position:relative;box-shadow:var(--sh1)}
-.line:hover{border-color:var(--line2)}
+.line{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;transition:border-color .2s,box-shadow .2s;position:relative;animation:scalein .34s cubic-bezier(.2,.8,.2,1) both;box-shadow:var(--sh1)}
+.line:hover{border-color:var(--line2)}.line:nth-child(2){animation-delay:.03s}.line:nth-child(3){animation-delay:.06s}.line:nth-child(4){animation-delay:.09s}.line:nth-child(5){animation-delay:.12s}
 .line.off{background:transparent;border-style:dashed;box-shadow:none}
 .line.off .name b{color:var(--mut)}
 .line.def{border-color:color-mix(in srgb,var(--sig) 40%,var(--line))}
@@ -94,7 +94,7 @@ header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 8
 .empty{padding:44px 20px;text-align:center;border:1.5px dashed var(--line2);border-radius:16px;color:var(--mut)}
 .empty b{display:block;color:var(--ink);font-size:20px;font-weight:800;margin-bottom:6px}
 .empty svg{width:34px;height:34px;color:var(--sig);margin-bottom:10px}
-.sk{height:104px;border-radius:16px;background:var(--sunk);border:1.5px solid var(--line);}
+.sk{height:104px;border-radius:16px;background:var(--sunk);border:1.5px solid var(--line);animation:fadein .5s ease both}
 
 footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:var(--mut);font-size:13.5px;padding:34px 0 40px;border-top:1px solid var(--line);margin-top:34px}
 footer b{color:var(--ink);font-family:var(--mono);font-weight:600}
