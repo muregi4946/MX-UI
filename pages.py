@@ -124,6 +124,48 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 """
 
+
+
+# UI/UX Pro Max pass: "signal cockpit" system. The interface should feel like a calm
+# network instrument, not a generic admin template: luminous signal teal, ink navy,
+# glassy telemetry surfaces, and motion that follows live status.
+BASE_CSS += r"""
+/* signal cockpit polish */
+:root{
+  --bg:#eaf2f0;--card:rgba(255,255,255,.78);--card2:rgba(247,252,250,.84);--sunk:#dfeae7;
+  --ink:#10201e;--mut:#607773;--line:rgba(133,166,158,.28);--line2:rgba(71,121,111,.42);
+  --sig:#00c6b2;--acc:#008d80;--acc-soft:rgba(0,198,178,.13);--navy:#2748a8;
+  --shadow:0 20px 60px -34px rgba(8,49,43,.46);--sh1:0 5px 18px -12px rgba(8,49,43,.36);
+}
+:root[data-theme=dark]{
+  --bg:#061311;--card:rgba(14,31,29,.82);--card2:rgba(17,39,36,.88);--sunk:#0a1d1a;
+  --ink:#e7f4f0;--mut:#91ada7;--line:rgba(116,170,158,.2);--line2:rgba(91,181,163,.42);
+  --sig:#2ce0c9;--acc:#2ce0c9;--acc-soft:rgba(44,224,201,.13);--navy:#8ca8ff;
+  --shadow:0 28px 80px -32px rgba(0,0,0,.8);--sh1:0 8px 24px -18px rgba(0,0,0,.8);
+}
+body{background:
+ radial-gradient(900px 420px at 12% -10%,color-mix(in srgb,var(--sig) 13%,transparent),transparent 64%),
+ radial-gradient(700px 400px at 100% 0%,color-mix(in srgb,var(--vio) 9%,transparent),transparent 62%),var(--bg)}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.26;background-image:linear-gradient(color-mix(in srgb,var(--line) 55%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--line) 55%,transparent) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 78%);z-index:-1}
+header{background:color-mix(in srgb,var(--bg) 72%,transparent);border-bottom-color:color-mix(in srgb,var(--sig) 20%,var(--line))}
+.panel,.meter,.line,.scope,.box,.mini,.qc,.hres,.tw,.tgl,.ptog,.facts,.linkbox{background:var(--card);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:var(--shadow)}
+.panel,.meter,.line{transition:transform .24s cubic-bezier(.2,.8,.2,1),border-color .24s,box-shadow .24s}
+.panel:hover,.meter:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--sig) 48%,var(--line));box-shadow:0 26px 64px -38px color-mix(in srgb,var(--sig) 55%,transparent)}
+.hero .panel:first-child{overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,var(--sig) 14%,var(--card)),var(--card) 62%)}
+.hero .panel:first-child:after{content:"";position:absolute;width:280px;height:280px;border:1px solid color-mix(in srgb,var(--sig) 25%,transparent);border-radius:50%;right:-120px;top:-150px;box-shadow:0 0 0 28px color-mix(in srgb,var(--sig) 5%,transparent),0 0 0 56px color-mix(in srgb,var(--sig) 4%,transparent);animation:signalring 8s ease-in-out infinite}
+.big{background:linear-gradient(110deg,var(--sig),var(--navy));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 32px color-mix(in srgb,var(--sig) 20%,transparent)}
+.kicker{letter-spacing:.16em}.kicker .lamp{box-shadow:0 0 0 5px color-mix(in srgb,var(--sig) 12%,transparent),0 0 18px var(--sig);animation:pulseLamp 2.4s ease-in-out infinite}
+.btn.pri{box-shadow:0 12px 24px -14px var(--sig)}.btn.pri:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px var(--sig)}
+.ib:hover{transform:translateY(-1px)}
+.line:hover{transform:translateX(4px);box-shadow:0 20px 42px -28px color-mix(in srgb,var(--sig) 50%,transparent)}
+.line:nth-child(1){animation-delay:.03s}.line:nth-child(2){animation-delay:.07s}.line:nth-child(3){animation-delay:.11s}.line:nth-child(4){animation-delay:.15s}
+.scope{border-color:color-mix(in srgb,var(--sig) 32%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--sig) 9%,var(--sunk)),var(--sunk))}
+.chip{border:1px solid color-mix(in srgb,var(--sig) 22%,var(--line))}
+@keyframes signalring{0%,100%{transform:scale(.96);opacity:.45}50%{transform:scale(1.05);opacity:.85}}
+@keyframes pulseLamp{0%,100%{opacity:.7}50%{opacity:1;box-shadow:0 0 0 7px color-mix(in srgb,var(--sig) 10%,transparent),0 0 24px var(--sig)}}
+@media(prefers-reduced-motion:reduce){body:before,.hero .panel:first-child:after,.kicker .lamp{animation:none!important}.panel:hover,.meter:hover,.line:hover,.btn.pri:hover{transform:none}}
+"""
+
 SPRITE_ICONS = {
     "plus": '<path d="M12 5v14M5 12h14"/>',
     "x": '<path d="M18 6 6 18M6 6l12 12"/>',
