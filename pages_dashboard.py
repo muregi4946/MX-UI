@@ -207,10 +207,10 @@ function bump(id){var e=$(id);if(!e||!e.animate)return;e.animate([{transform:'tr
 var scopeHist=[];
 function drawScope(){var c=$('scope');if(!c||!c.getContext)return;var x=c.getContext('2d');var W=c.width,H=c.height;x.clearRect(0,0,W,H);
   x.strokeStyle=getCss('--line');x.lineWidth=1;x.beginPath();for(var g=1;g<4;g++){x.moveTo(0,g*H/4);x.lineTo(W,g*H/4);}x.stroke();
-  if(scopeHist.length<2)return;var max=Math.max(1024,Math.max.apply(null,scopeHist));
+  if(scopeHist.length<2){x.strokeStyle=getCss('--line2');x.beginPath();x.moveTo(0,H-6);x.lineTo(W,H-6);x.stroke();return;}var max=Math.max(1024,Math.max.apply(null,scopeHist));
   x.beginPath();scopeHist.forEach(function(v,i){var px=i/(scopeHist.length-1)*W,py=H-6-(v/max)*(H-14);i?x.lineTo(px,py):x.moveTo(px,py);});
   x.strokeStyle=getCss('--sig');x.lineWidth=2;x.shadowColor=getCss('--sig');x.shadowBlur=6;x.stroke();x.shadowBlur=0;}
-function getCss(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||'#8b7cff';}
+function getCss(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||'#2de2c3';}
 function pushScope(v){scopeHist.push(v);if(scopeHist.length>90)scopeHist.shift();drawScope();}
 window.addEventListener('resize',drawScope);
 drawScope();
@@ -240,7 +240,7 @@ function renderStats(d){
   $('bigTotal').innerHTML=u[0]+'<small>'+u[1]+'</small>';bump('bigTotal');
   $('bigSub').textContent=(d.active_connections||0)+' live session'+((d.active_connections||0)===1?'':'s')+' · '+(d.total_requests||0)+' requests since boot';
   var pr=d.protocols||{};
-  $('pmix').innerHTML=PROTOS.map(function(p){return protoPill(p)+'<span class="tag" style="height:24px">'+(pr[p]||0)+' configs</span>';}).join('');
+  $('pmix').innerHTML=PROTOS.map(function(p){return protoPill(p)+'<span class="tag" style="height:24px">'+(pr[p]||0)+((pr[p]||0)===1?' config':' configs')+'</span>';}).join('');
   $('kConn').textContent=d.active_connections||0;$('kIps').textContent=d.online_ips||0;
   $('kActive').innerHTML=(d.active_links||0)+'<em> / '+(d.links_count||0)+'</em>';
   $('kUp').textContent=d.uptime||'--';$('foot').textContent='uptime '+(d.uptime||'--');
@@ -253,7 +253,7 @@ function renderStats(d){
   var x=d.xray||{};$('xrayText').textContent=x.running?'Xray '+(x.version||'').replace(/^Xray /,'').split(' ')[0]:'Xray down';
   $('xrayLamp').className='lamp '+(x.running?'live':'cut');
   var sy=function(id,pct){$(id).innerHTML=vu(pct,24);};
-  $('mCpu').textContent=Math.round(d.cpu_percent)+'%';sy('vCpu',d.cpu_percent);$('pCpu').textContent=d.cpu_cores+' cores · load '+(d.load_avg||[]).join(' / ');
+  $('mCpu').textContent=Math.round(d.cpu_percent)+'%';sy('vCpu',d.cpu_percent);$('pCpu').textContent=d.cpu_cores+(d.cpu_cores===1?' core':' cores')+' · load '+(d.load_avg||[]).join(' / ');
   $('mRam').textContent=Math.round(d.ram_percent)+'%';sy('vRam',d.ram_percent);$('pRam').textContent=(d.ram_used_mb/1024).toFixed(2)+' / '+(d.ram_total_mb/1024).toFixed(2)+' GB';
   $('mSwap').textContent=Math.round(d.swap_percent)+'%';sy('vSwap',d.swap_percent);$('pSwap').textContent=(d.swap_used_mb/1024).toFixed(2)+' / '+(d.swap_total_mb/1024).toFixed(2)+' GB';
   $('mDisk').textContent=Math.round(d.disk_percent)+'%';sy('vDisk',d.disk_percent);$('pDisk').textContent=d.disk_used_gb.toFixed(1)+' / '+d.disk_total_gb.toFixed(1)+' GB';

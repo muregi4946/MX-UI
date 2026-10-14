@@ -56,7 +56,7 @@ SPRITE_ICONS = {
 # Protocol marks: VLESS = braided signal, Trojan = shielded key
 _BRAND_DEFS = (
     '<symbol id="i-brand" viewBox="0 0 48 48">'
-    '<defs><linearGradient id="mxg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#7c6cff"/><stop offset="1" stop-color="#22b8e8"/></linearGradient></defs>'
+    '<defs><linearGradient id="mxg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#0a7f73"/><stop offset="1" stop-color="#16b9a5"/></linearGradient></defs>'
     '<rect width="48" height="48" rx="14" fill="url(#mxg)"/>'
     '<path d="M10.5 34V14.6L19.3 25.4 28 14.6V34" fill="none" stroke="#fff" stroke-width="3.5" '
     'stroke-linecap="round" stroke-linejoin="round"/>'
@@ -94,7 +94,7 @@ THEME_BTN = ('<button class="ib" onclick="toggleTheme()" title="Light / dark the
              '<svg class="i ic-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>')
 
 FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E"
-           "%3Crect width='48' height='48' rx='13' fill='%236d5dfc'/%3E"
+           "%3Crect width='48' height='48' rx='13' fill='%230a7f73'/%3E"
            "%3Cpath d='M10.5 34V14.6L19.3 25.4 28 14.6V34' fill='none' stroke='%23fff' stroke-width='3.5' "
            "stroke-linecap='round' stroke-linejoin='round'/%3E"
            "%3Cpath d='M33.6 19.4a8.4 8.4 0 0 1 0 9.2' fill='none' stroke='%23fff' stroke-width='2.8' "
@@ -107,7 +107,7 @@ HEAD = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#07070f" media="(prefers-color-scheme:dark)">
-<meta name="theme-color" content="#f3f4fb">
+<meta name="theme-color" content="#eef3f4">
 <meta name="robots" content="noindex,nofollow">
 <title>__TITLE__</title>
 <link rel="icon" href="__FAVICON__">

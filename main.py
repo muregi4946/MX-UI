@@ -1,4 +1,4 @@
-# main.py — MX-UI v2.1.0 (FastAPI control plane + VLESS-WS / Trojan-WS gateways in front of Xray)
+# main.py — MX-UI v2.3.0 (FastAPI control plane + VLESS-WS / Trojan-WS gateways in front of Xray)
 import asyncio
 import base64
 import hashlib
