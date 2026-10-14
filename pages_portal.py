@@ -84,6 +84,20 @@ body{display:grid;place-items:start center;padding:28px 16px 48px;background:var
   .lrow .tag{display:none}
 .lrow .pp{display:none}
 }
+
+/* NIGHT SHIFT redesign: a compact access card with a luminous signal rail */
+body{background:var(--bg);background-image:radial-gradient(circle at 50% -10%,rgba(45,226,195,.13),transparent 32rem)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.26;background-image:linear-gradient(rgba(45,226,195,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(45,226,195,.05) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,black,transparent 75%);z-index:-1}
+.pass{background:#0d1520;border-color:#24434d;border-radius:16px;box-shadow:0 32px 100px -42px rgba(45,226,195,.55)}
+.head{background:#101d29;border-bottom:1px solid #24434d;padding:20px 24px}.head .logo{box-shadow:0 0 0 5px rgba(45,226,195,.08),0 0 28px rgba(45,226,195,.2)}
+.main{padding:30px 28px 28px}.name{background:linear-gradient(120deg,#f1fbf8,var(--sig));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stamp{border-color:var(--sig);color:var(--sig);box-shadow:0 0 20px rgba(45,226,195,.12)}.facts{border-color:#233c49}.facts div{border-color:#233c49}.stub{background:#0a111b;border-left-color:#294451}.stub .qr{border:1px solid #355763;box-shadow:0 18px 40px -24px rgba(45,226,195,.65)}
+.gauge .top b{color:#effaf7}.gauge .top b em{color:#718792}.linkbox{background:#0a111b;border-color:#233c49}.lrow{border-color:#233c49}.lrow input{background:#101d29;border-color:#294451;color:#9cb0b7}.lrow:hover{background:rgba(45,226,195,.06);transform:translateX(3px)}
+.btn{background:#101d29;border-color:#294451}.btn.pri{background:var(--sig);border-color:var(--sig);color:#031a18;box-shadow:0 12px 28px -18px var(--sig)}.foot{background:#0a111b;border-color:#233c49}
+@keyframes passenter{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.pass{animation:passenter .65s cubic-bezier(.2,.8,.2,1) both}
+@media(prefers-reduced-motion:reduce){body::before{display:none}.lrow:hover{transform:none}}
+
 """
 
 PORTAL_JS = r"""

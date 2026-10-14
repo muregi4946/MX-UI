@@ -1,13 +1,10 @@
 # pages.py — MX-UI v2.2.0 front-end foundation (no build step, no CDN scripts)
 #
 # Design notes
-#   Subject : a self-hosted VLESS + Trojan tunnel panel run by one operator, shared with end users.
-#   Lineage : a telephone exchange patch bay. Every config is a "line" with a status lamp
-#             and a segmented VU meter; the header carries a live oscilloscope trace.
-#   Mark    : "MX" monogram with two signal arcs, flat signal teal, 13/48 corner radius.
-#   Type    : Red Hat Display (UI + statement numerals) / JetBrains Mono (data) / Vazirmatn (fa names)
-#   Color   : signal teal #00b7a7 leads; violet #6d5ce7 = Trojan; amber #ffcd12 = attention;
-#             carmine #a40000 = cut; ink-navy #16317d = upload trace. Neutrals tint toward teal.
+#   Subject : a self-hosted tunnel control plane for one operator.
+#   Direction: NIGHT SHIFT / a quiet operations room, with hard-edged telemetry and luminous status.
+#   Mark    : MX monogram, signal cyan, graphite surfaces, acid-lime health accents.
+#   Type    : Red Hat Display + JetBrains Mono + Vazirmatn.
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
          '<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">')
 
@@ -15,31 +12,22 @@ BASE_CSS = r"""
 .page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg);opacity:1;pointer-events:none}.page-loader.hide{animation:fadeout .28s ease forwards}.loader-mark{width:48px;height:48px;border-radius:14px;background:var(--acc);box-shadow:0 12px 30px rgba(0,183,167,.2);animation:scalein .34s ease both}.loader-bar{width:96px;height:3px;margin:16px auto 0;border-radius:99px;background:var(--line);overflow:hidden}.loader-bar i{display:block;width:45%;height:100%;border-radius:99px;background:var(--sig);animation:fadein .5s ease both}
 
 :root{
-  --bg:#eef4f3;--card:#fcfefd;--card2:#f6faf9;--sunk:#e6eeec;--ink:#0f1e1d;--mut:#5a706d;
-  --line:#d7e3e0;--line2:#c0d2ce;
-  --sig:#00b7a7;--acc:#06796f;--acc-ink:#fff;--acc-soft:rgba(0,183,167,.13);
-  --vio:#6d5ce7;--vio-soft:rgba(109,92,231,.13);--vio-ink:#4b3cc4;
-  --amb:#ffcd12;--amb-ink:#7a5c00;--amb-soft:rgba(255,205,18,.22);
-  --red:#b00014;--red-soft:rgba(176,0,20,.09);--navy:#16317d;--plum:#b86092;
-  --seg-off:#d9e4e1;
-  --sh1:0 1px 2px rgba(15,30,29,.06);
-  --sh2:0 1px 0 rgba(15,30,29,.04),0 10px 30px -14px rgba(15,30,29,.22);
-  --sh3:0 24px 70px -24px rgba(15,30,29,.45);
+  --bg:#070b12;--card:#0e1520;--card2:#111b28;--sunk:#0a111b;--ink:#e9f2f2;--mut:#81909f;
+  --line:#1d2b3a;--line2:#2b4154;
+  --sig:#2de2c3;--acc:#21cdb4;--acc-ink:#031a18;--acc-soft:rgba(45,226,195,.12);
+  --vio:#a78bfa;--vio-soft:rgba(167,139,250,.14);--vio-ink:#c4b5fd;
+  --amb:#f8c15c;--amb-ink:#ffd98a;--amb-soft:rgba(248,193,92,.14);
+  --red:#ff6b7a;--red-soft:rgba(255,107,122,.13);--navy:#78a7ff;--plum:#f0a6d1;
+  --seg-off:#1a2936;
+  --sh1:0 1px 2px rgba(0,0,0,.3);
+  --sh2:0 18px 50px -30px rgba(0,0,0,.8);
+  --sh3:0 30px 90px -35px rgba(0,0,0,.95);
   --shadow:var(--sh2);
-  --r:14px;--r-lg:20px;
+  --r:12px;--r-lg:18px;
   --ui:'Red Hat Display','Vazirmatn',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --mono:'JetBrains Mono','Vazirmatn',ui-monospace,Menlo,Consolas,monospace;color-scheme:light}
-:root[data-theme=dark]{
-  --bg:#081110;--card:#101c1b;--card2:#142221;--sunk:#0b1514;--ink:#e4efed;--mut:#8ca3a0;
-  --line:#1f2f2d;--line2:#2c423e;
-  --sig:#1ed3c0;--acc:#1ed3c0;--acc-ink:#042220;--acc-soft:rgba(30,211,192,.14);
-  --vio:#9b8cff;--vio-soft:rgba(155,140,255,.15);--vio-ink:#b5a9ff;
-  --amb:#ffcd12;--amb-ink:#ffd84a;--amb-soft:rgba(255,205,18,.13);
-  --red:#ff6f61;--red-soft:rgba(255,111,97,.13);--navy:#86a2ff;--plum:#e08fbd;
-  --seg-off:#1c2c2a;
-  --sh1:0 1px 2px rgba(0,0,0,.4);
-  --sh2:0 1px 0 rgba(0,0,0,.25),0 14px 36px -16px rgba(0,0,0,.7);
-  --sh3:0 28px 80px -24px rgba(0,0,0,.85);color-scheme:dark}
+:root[data-theme=dark]{color-scheme:dark}
+
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
 body{font-family:var(--ui);background:var(--bg);color:var(--ink);font-size:16px;line-height:1.5;min-height:100dvh;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
@@ -122,48 +110,6 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 @keyframes fadein{from{opacity:0}to{opacity:1}}
 @keyframes fadeout{from{opacity:1}to{opacity:0}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
-"""
-
-
-
-# UI/UX Pro Max pass: "signal cockpit" system. The interface should feel like a calm
-# network instrument, not a generic admin template: luminous signal teal, ink navy,
-# glassy telemetry surfaces, and motion that follows live status.
-BASE_CSS += r"""
-/* signal cockpit polish */
-:root{
-  --bg:#eaf2f0;--card:rgba(255,255,255,.78);--card2:rgba(247,252,250,.84);--sunk:#dfeae7;
-  --ink:#10201e;--mut:#607773;--line:rgba(133,166,158,.28);--line2:rgba(71,121,111,.42);
-  --sig:#00c6b2;--acc:#008d80;--acc-soft:rgba(0,198,178,.13);--navy:#2748a8;
-  --shadow:0 20px 60px -34px rgba(8,49,43,.46);--sh1:0 5px 18px -12px rgba(8,49,43,.36);
-}
-:root[data-theme=dark]{
-  --bg:#061311;--card:rgba(14,31,29,.82);--card2:rgba(17,39,36,.88);--sunk:#0a1d1a;
-  --ink:#e7f4f0;--mut:#91ada7;--line:rgba(116,170,158,.2);--line2:rgba(91,181,163,.42);
-  --sig:#2ce0c9;--acc:#2ce0c9;--acc-soft:rgba(44,224,201,.13);--navy:#8ca8ff;
-  --shadow:0 28px 80px -32px rgba(0,0,0,.8);--sh1:0 8px 24px -18px rgba(0,0,0,.8);
-}
-body{background:
- radial-gradient(900px 420px at 12% -10%,color-mix(in srgb,var(--sig) 13%,transparent),transparent 64%),
- radial-gradient(700px 400px at 100% 0%,color-mix(in srgb,var(--vio) 9%,transparent),transparent 62%),var(--bg)}
-body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.26;background-image:linear-gradient(color-mix(in srgb,var(--line) 55%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--line) 55%,transparent) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 78%);z-index:-1}
-header{background:color-mix(in srgb,var(--bg) 72%,transparent);border-bottom-color:color-mix(in srgb,var(--sig) 20%,var(--line))}
-.panel,.meter,.line,.scope,.box,.mini,.qc,.hres,.tw,.tgl,.ptog,.facts,.linkbox{background:var(--card);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:var(--shadow)}
-.panel,.meter,.line{transition:transform .24s cubic-bezier(.2,.8,.2,1),border-color .24s,box-shadow .24s}
-.panel:hover,.meter:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--sig) 48%,var(--line));box-shadow:0 26px 64px -38px color-mix(in srgb,var(--sig) 55%,transparent)}
-.hero .panel:first-child{overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,var(--sig) 14%,var(--card)),var(--card) 62%)}
-.hero .panel:first-child:after{content:"";position:absolute;width:280px;height:280px;border:1px solid color-mix(in srgb,var(--sig) 25%,transparent);border-radius:50%;right:-120px;top:-150px;box-shadow:0 0 0 28px color-mix(in srgb,var(--sig) 5%,transparent),0 0 0 56px color-mix(in srgb,var(--sig) 4%,transparent);animation:signalring 8s ease-in-out infinite}
-.big{background:linear-gradient(110deg,var(--sig),var(--navy));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 32px color-mix(in srgb,var(--sig) 20%,transparent)}
-.kicker{letter-spacing:.16em}.kicker .lamp{box-shadow:0 0 0 5px color-mix(in srgb,var(--sig) 12%,transparent),0 0 18px var(--sig);animation:pulseLamp 2.4s ease-in-out infinite}
-.btn.pri{box-shadow:0 12px 24px -14px var(--sig)}.btn.pri:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px var(--sig)}
-.ib:hover{transform:translateY(-1px)}
-.line:hover{transform:translateX(4px);box-shadow:0 20px 42px -28px color-mix(in srgb,var(--sig) 50%,transparent)}
-.line:nth-child(1){animation-delay:.03s}.line:nth-child(2){animation-delay:.07s}.line:nth-child(3){animation-delay:.11s}.line:nth-child(4){animation-delay:.15s}
-.scope{border-color:color-mix(in srgb,var(--sig) 32%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--sig) 9%,var(--sunk)),var(--sunk))}
-.chip{border:1px solid color-mix(in srgb,var(--sig) 22%,var(--line))}
-@keyframes signalring{0%,100%{transform:scale(.96);opacity:.45}50%{transform:scale(1.05);opacity:.85}}
-@keyframes pulseLamp{0%,100%{opacity:.7}50%{opacity:1;box-shadow:0 0 0 7px color-mix(in srgb,var(--sig) 10%,transparent),0 0 24px var(--sig)}}
-@media(prefers-reduced-motion:reduce){body:before,.hero .panel:first-child:after,.kicker .lamp{animation:none!important}.panel:hover,.meter:hover,.line:hover,.btn.pri:hover{transform:none}}
 """
 
 SPRITE_ICONS = {
@@ -263,7 +209,7 @@ HEAD = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#081110" media="(prefers-color-scheme:dark)">
-<meta name="theme-color" content="#eef4f3" media="(prefers-color-scheme:light)">
+<meta name="theme-color" content="#070b12">
 <meta name="robots" content="noindex,nofollow">
 <title>__TITLE__</title>
 <link rel="icon" href="__FAVICON__">

@@ -173,6 +173,26 @@ td.r,th.r{text-align:right}
 .ver-foot{color:var(--mut)}
 @media(max-width:560px){.sec-h h2{font-size:26px}.kpi b{font-size:24px}.panel{padding:18px}.mh{padding:18px 18px 0}.mb{padding:16px 18px}.mf{padding:0 18px 18px}}
 .mf .btn{flex:1 1 auto}
+
+/* NIGHT SHIFT redesign: a dark-first operations room, not a generic admin template */
+body{background:var(--bg);color:var(--ink)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.34;background:linear-gradient(115deg,transparent 0 38%,rgba(45,226,195,.035) 50%,transparent 62%),linear-gradient(rgba(45,226,195,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(45,226,195,.045) 1px,transparent 1px);background-size:auto,56px 56px,56px 56px;mask-image:linear-gradient(to bottom,black,transparent 80%);z-index:-1}
+header{background:rgba(7,11,18,.78);border-bottom:1px solid #1d3941}
+.bar{min-height:78px}.wordmark b{letter-spacing:.02em}.logo{box-shadow:0 0 0 5px rgba(45,226,195,.08),0 0 32px rgba(45,226,195,.22)}
+.hero{margin:40px 0 20px;grid-template-columns:1.35fr .9fr}.panel{background:linear-gradient(145deg,#111d29,#0d141f 70%);border-color:#1c3943;box-shadow:0 30px 70px -42px rgba(0,0,0,.9)}
+.panel:first-child{border-top:2px solid var(--sig);overflow:hidden}.panel:first-child::before{content:"LIVE / CONTROL PLANE";position:absolute;right:22px;top:20px;font:600 11px var(--mono);letter-spacing:.16em;color:var(--sig);opacity:.8}
+.big{font-size:clamp(54px,8vw,92px);background:linear-gradient(120deg,#f1fbf8 5%,var(--sig) 65%,#87fff0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:none}
+.kpis{background:#0c141f;border-color:#223846}.kpi{padding:18px 20px}.kpi b{font-size:32px;color:#effaf7}.kpi.live b{color:var(--sig)}
+.charts{gap:20px}.chart{height:190px}.charts .panel{border-top:1px solid #233d48}.meter{background:#0c141f;border-color:#1d303e;border-radius:12px}.meter .top b{color:var(--sig)}
+.sec-h h2{font-size:34px;letter-spacing:-.045em}.sec-h p{color:#91a3ad}.filters{margin-top:20px}.fchip{background:#0c141f;border-color:#203342}.fchip[aria-pressed=true]{background:rgba(45,226,195,.1);border-color:var(--sig);color:var(--sig)}
+.line{background:#0e1723;border-color:#1c3040;border-radius:12px;box-shadow:none}.line:hover{transform:translateY(-3px);border-color:#3a6f78;box-shadow:0 18px 40px -28px rgba(45,226,195,.5)}.line.def{box-shadow:inset 3px 0 0 var(--sig),0 0 0 1px rgba(45,226,195,.12)}
+.btn{background:#111d29;border-color:#28404d}.btn.pri{background:var(--sig);border-color:var(--sig);color:#031a18;box-shadow:0 12px 28px -18px var(--sig)}.btn.pri:hover{filter:brightness(1.08);transform:translateY(-2px)}
+.chip{background:#10202a;border:1px solid #24424b}.tag.acc{color:var(--sig)}
+@keyframes nightenter{from{opacity:0;transform:translateY(14px);filter:brightness(.7)}to{opacity:1;transform:none;filter:none}}
+.hero,.charts,.sys,.sec{animation:nightenter .65s cubic-bezier(.2,.8,.2,1) both}.charts{animation-delay:.08s}.sys{animation-delay:.16s}.sec{animation-delay:.24s}
+@media(max-width:720px){.hero{margin-top:24px}.panel:first-child::before{display:none}.sec-h h2{font-size:29px}}
+@media(prefers-reduced-motion:reduce){body::before{display:none}.line:hover,.btn.pri:hover{transform:none}}
+
 """
 
 DASH_BODY = r"""<body>

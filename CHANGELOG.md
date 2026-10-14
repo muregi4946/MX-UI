@@ -76,3 +76,12 @@
 
 ## 1.0.0
 - Initial release.
+
+## UI refresh
+- Added signal-console visual layer with atmospheric grid, responsive depth, and stronger hierarchy.
+- Added smoother entrance, hover, status-meter, and subscriber-pass motion with reduced-motion fallbacks.
+- Refined dashboard panels, config rows, primary actions, portal QR stub, and link interactions.
+
+## Night Shift redesign
+- Kept the protocol surface focused; supported protocol handling remains unchanged.
+- Rebuilt the visual layer as a dark-first operations room with luminous telemetry, clearer hierarchy, and responsive access cards.
