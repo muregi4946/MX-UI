@@ -1,4 +1,4 @@
-# MX-UI v2.1.0
+# MX-UI v2.3.0
 
 پنل مدیریت Xray با VLESS-WebSocket و Trojan-WebSocket.
 

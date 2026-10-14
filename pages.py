@@ -1,116 +1,13 @@
-# pages.py — MX-UI v2.2.0 front-end foundation (no build step, no CDN scripts)
+# pages.py — MX-UI v2.3.0 front-end foundation (no build step). All CSS lives in theme.py ("Aurora Glass").
+from theme import FONTS, AURORA, BASE_CSS, MODAL_CSS, AUTH_CSS
 #
 # Design notes
 #   Subject : a self-hosted tunnel control plane for one operator.
 #   Direction: NIGHT SHIFT / a quiet operations room, with hard-edged telemetry and luminous status.
 #   Mark    : MX monogram, signal cyan, graphite surfaces, acid-lime health accents.
 #   Type    : Red Hat Display + JetBrains Mono + Vazirmatn.
-FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-         '<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">')
 
-BASE_CSS = r"""
-.page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg);opacity:1;pointer-events:none}.page-loader.hide{animation:fadeout .28s ease forwards}.loader-mark{width:48px;height:48px;border-radius:14px;background:var(--acc);box-shadow:0 12px 30px rgba(0,183,167,.2);animation:scalein .34s ease both}.loader-bar{width:96px;height:3px;margin:16px auto 0;border-radius:99px;background:var(--line);overflow:hidden}.loader-bar i{display:block;width:45%;height:100%;border-radius:99px;background:var(--sig);animation:fadein .5s ease both}
 
-:root{
-  --bg:#070b12;--card:#0e1520;--card2:#111b28;--sunk:#0a111b;--ink:#e9f2f2;--mut:#81909f;
-  --line:#1d2b3a;--line2:#2b4154;
-  --sig:#2de2c3;--acc:#21cdb4;--acc-ink:#031a18;--acc-soft:rgba(45,226,195,.12);
-  --vio:#a78bfa;--vio-soft:rgba(167,139,250,.14);--vio-ink:#c4b5fd;
-  --amb:#f8c15c;--amb-ink:#ffd98a;--amb-soft:rgba(248,193,92,.14);
-  --red:#ff6b7a;--red-soft:rgba(255,107,122,.13);--navy:#78a7ff;--plum:#f0a6d1;
-  --seg-off:#1a2936;
-  --sh1:0 1px 2px rgba(0,0,0,.3);
-  --sh2:0 18px 50px -30px rgba(0,0,0,.8);
-  --sh3:0 30px 90px -35px rgba(0,0,0,.95);
-  --shadow:var(--sh2);
-  --r:12px;--r-lg:18px;
-  --ui:'Red Hat Display','Vazirmatn',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  --mono:'JetBrains Mono','Vazirmatn',ui-monospace,Menlo,Consolas,monospace;color-scheme:light}
-:root[data-theme=dark]{color-scheme:dark}
-
-*{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-text-size-adjust:100%}
-body{font-family:var(--ui);background:var(--bg);color:var(--ink);font-size:16px;line-height:1.5;min-height:100dvh;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
-body.lock{overflow:hidden}
-a{color:inherit}
-button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer;background:none;border:0}
-::selection{background:var(--acc-soft)}
-:focus-visible{outline:2px solid var(--sig);outline-offset:2px;border-radius:6px}
-.mono{font-family:var(--mono);font-feature-settings:"zero" 1}
-.mut{color:var(--mut)}.hidden{display:none!important}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
-/* ---------- brand ---------- */
-.logo{width:34px;height:34px;flex:none;border-radius:10px;box-shadow:var(--sh1)}
-.logo.lg{width:46px;height:46px;border-radius:13px}
-.logo.sm{width:26px;height:26px;border-radius:8px}
-.wordmark{display:flex;flex-direction:column;min-width:0;line-height:1.05}
-.wordmark b{font-weight:900;font-size:18px;letter-spacing:-.025em}
-.wordmark b i{font-style:normal;color:var(--sig)}
-.wordmark small{font:500 11.5px/1.4 var(--mono);color:var(--mut)}
-/* ---------- lamp: the signature status light ---------- */
-.lamp{--c:var(--seg-off);width:10px;height:10px;border-radius:50%;background:var(--c);flex:none;position:relative;box-shadow:inset 0 -1px 2px rgba(0,0,0,.25)}
-.lamp.on{--c:var(--sig)}
-
-.lamp.warn{--c:var(--amb)}
-.lamp.cut{--c:var(--red)}
-.lamp.off{background:transparent;box-shadow:inset 0 0 0 2px var(--line2)}
-
-/* ---------- segmented VU meter ---------- */
-.vu{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;height:12px}
-.vu i{border-radius:2px;background:var(--seg-off);transition:background .4s}
-.vu i.f{background:var(--sig)}.vu i.f.a{background:var(--amb)}.vu i.f.r{background:var(--red)}
-.vu.inf i{background:var(--seg-off);opacity:.55}
-/* ---------- controls ---------- */
-.field{display:grid;gap:6px;min-width:0}
-.field>span{font-size:14px;font-weight:700}
-.field>small{font-size:13.5px;color:var(--mut)}
-.input{width:100%;height:46px;padding:0 14px;background:var(--card);border:1.5px solid var(--line);border-radius:11px;font-size:16px;transition:border-color .15s,box-shadow .15s}
-.input::placeholder{color:var(--mut);opacity:.7}
-.input:focus{outline:none;border-color:var(--sig);box-shadow:0 0 0 4px var(--acc-soft)}
-textarea.input{height:auto;padding:12px 14px}
-select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235a706d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-position:calc(100% - 14px) 50%;background-size:12px 8px;background-repeat:no-repeat;padding-right:34px}
-.join{display:flex}.join .input:first-child{border-radius:11px 0 0 11px;border-right:0}.join .input:last-child{border-radius:0 11px 11px 0;width:auto;min-width:96px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);font-weight:700;font-size:15px;white-space:nowrap;transition:background .15s,border-color .15s,transform .08s,filter .15s,box-shadow .15s}
-.btn:hover{border-color:var(--line2);background:var(--sunk)}.btn:active{transform:translateY(1px)}.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
-.btn.pri:hover{filter:brightness(1.08)}
-.btn.bad{background:var(--red);border-color:var(--red);color:#fff}
-.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:var(--sunk)}
-.btn.sm{height:36px;padding:0 13px;font-size:14px;border-radius:9px}.btn.block{width:100%}
-.ib{width:40px;height:40px;display:inline-grid;place-items:center;border-radius:11px;color:var(--mut);transition:background .15s,color .15s}
-.ib:hover{background:var(--sunk);color:var(--ink)}.ib.sm{width:36px;height:36px;border-radius:10px}.ib.bad:hover{color:var(--red);background:var(--red-soft)}
-.chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:99px;font-size:14px;font-weight:700;background:var(--sunk);color:var(--mut);white-space:nowrap}
-.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font:600 12.5px/1 var(--mono);background:var(--sunk);color:var(--mut);white-space:nowrap}
-.tag.acc{background:var(--acc-soft);color:var(--acc)}.tag.amb{background:var(--amb-soft);color:var(--amb-ink)}
-.tag.red{background:var(--red-soft);color:var(--red)}.tag.vio{background:var(--vio-soft);color:var(--vio-ink)}
-/* protocol pills */
-.pp{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 7px;border-radius:7px;font:800 11.5px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.pp svg{width:13px;height:13px;stroke-width:2.4}
-.pp.vless{background:var(--acc-soft);color:var(--acc)}
-.pp.trojan{background:var(--vio-soft);color:var(--vio-ink)}
-.pp.vmess{background:rgba(22,49,125,.12);color:var(--navy)}
-.pp.ss{background:var(--amb-soft);color:var(--amb-ink)}
-.alert{padding:11px 14px;border-radius:11px;background:var(--red-soft);color:var(--red);font-size:14px;font-weight:700}
-.note{display:flex;gap:12px;align-items:flex-start;padding:13px 15px;border-radius:12px;background:var(--sunk);font-size:14px}
-.note.amb{background:var(--amb-soft)}.note.amb svg{color:var(--amb-ink)}
-.note.acc{background:var(--acc-soft)}.note.acc svg{color:var(--acc)}
-.note b{display:block;font-size:15px}
-.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translate(-50%,18px);max-width:min(92vw,440px);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-size:15px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .25s cubic-bezier(.2,.9,.3,1.3);z-index:200;display:flex;gap:10px;align-items:center;box-shadow:var(--sh3)}
-.toast.on{opacity:1;transform:translate(-50%,0)}
-.toast.ok::before,.toast.err::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--sig);box-shadow:0 0 8px var(--sig)}
-.toast.err::before{background:#ff6f61;box-shadow:0 0 8px #ff6f61}
-/* theme toggle swaps glyphs with the root attribute */
-.ic-sun{display:none}
-:root[data-theme=dark] .ic-sun{display:block}
-:root[data-theme=dark] .ic-moon{display:none}
-@keyframes scalein{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
-@keyframes scaleout{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.94)}}
-@keyframes fadein{from{opacity:0}to{opacity:1}}
-@keyframes fadeout{from{opacity:1}to{opacity:0}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
-"""
 
 SPRITE_ICONS = {
     "plus": '<path d="M12 5v14M5 12h14"/>',
@@ -159,7 +56,8 @@ SPRITE_ICONS = {
 # Protocol marks: VLESS = braided signal, Trojan = shielded key
 _BRAND_DEFS = (
     '<symbol id="i-brand" viewBox="0 0 48 48">'
-    '<rect width="48" height="48" rx="13" fill="#0a7f73"/>'
+    '<defs><linearGradient id="mxg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#7c6cff"/><stop offset="1" stop-color="#22b8e8"/></linearGradient></defs>'
+    '<rect width="48" height="48" rx="14" fill="url(#mxg)"/>'
     '<path d="M10.5 34V14.6L19.3 25.4 28 14.6V34" fill="none" stroke="#fff" stroke-width="3.5" '
     'stroke-linecap="round" stroke-linejoin="round"/>'
     '<path d="M33.6 19.4a8.4 8.4 0 0 1 0 9.2" fill="none" stroke="#fff" stroke-width="2.8" '
@@ -196,7 +94,7 @@ THEME_BTN = ('<button class="ib" onclick="toggleTheme()" title="Light / dark the
              '<svg class="i ic-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>')
 
 FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E"
-           "%3Crect width='48' height='48' rx='13' fill='%230a7f73'/%3E"
+           "%3Crect width='48' height='48' rx='13' fill='%236d5dfc'/%3E"
            "%3Cpath d='M10.5 34V14.6L19.3 25.4 28 14.6V34' fill='none' stroke='%23fff' stroke-width='3.5' "
            "stroke-linecap='round' stroke-linejoin='round'/%3E"
            "%3Cpath d='M33.6 19.4a8.4 8.4 0 0 1 0 9.2' fill='none' stroke='%23fff' stroke-width='2.8' "
@@ -208,8 +106,8 @@ HEAD = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#081110" media="(prefers-color-scheme:dark)">
-<meta name="theme-color" content="#070b12">
+<meta name="theme-color" content="#07070f" media="(prefers-color-scheme:dark)">
+<meta name="theme-color" content="#f3f4fb">
 <meta name="robots" content="noindex,nofollow">
 <title>__TITLE__</title>
 <link rel="icon" href="__FAVICON__">
@@ -224,8 +122,13 @@ __CSS__</style>
 
 def page(title, css, body):
     loader = '<div class="page-loader" aria-hidden="true"><div><div class="loader-mark"></div><div class="loader-bar"><i></i></div></div></div>'
-    loader_script = '<script>document.addEventListener("DOMContentLoaded",function(){var l=document.querySelector(".page-loader");if(l){requestAnimationFrame(function(){l.classList.add("hide");setTimeout(function(){l.remove();},320);});}});</script>'
-    body = loader + body + loader_script
+    loader_script = ('<script>(function(){function h(){var l=document.querySelector(".page-loader");if(l){requestAnimationFrame(function(){l.classList.add("hide");setTimeout(function(){l.remove();},380);});}}'
+                     'if(document.readyState==="complete"||document.readyState==="interactive")h();else document.addEventListener("DOMContentLoaded",h);})();</script>')
+    if body.lstrip().startswith("<body>"):
+        body = body.replace("<body>", "<body>" + AURORA + loader, 1)
+    else:
+        body = AURORA + loader + body
+    body = body + loader_script
     return (HEAD.replace("__TITLE__", title).replace("__FONTS__", FONTS).replace("__FAVICON__", FAVICON)
             .replace("__BASE__", BASE_CSS).replace("__CSS__", css) + body)
 
@@ -269,21 +172,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'){var o=$$('.
 """
 
 # shared modal + dialog chrome (dashboard and logs both use it)
-MODAL_CSS = r"""
-.modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:18px;background:rgba(4,12,11,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .2s}
-.modal.open{opacity:1;pointer-events:auto}
-.sheet{width:min(var(--w,560px),100%);max-height:calc(100dvh - 36px);display:flex;flex-direction:column;background:var(--card);border:1.5px solid var(--line);border-radius:22px;box-shadow:var(--sh3);transform:translateY(14px) scale(.985);transition:transform .3s cubic-bezier(.2,.9,.3,1.1);outline:none}
-.modal.open{opacity:1;pointer-events:auto}.modal.open .sheet{transform:none;animation:scalein .28s cubic-bezier(.2,.8,.2,1) both}
-.mh{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:22px 22px 0}
-.mh h3{font-size:24px;font-weight:900;letter-spacing:-.025em;line-height:1.1}
-.mh p{color:var(--mut);font-size:14.5px;margin-top:6px}
-.mb{padding:18px 22px;overflow:auto;display:grid;gap:16px;min-height:0}
-.mf{padding:0 22px 22px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center}
-.confirm .sheet{--w:420px}
-.bdg{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:var(--amb-soft);color:var(--amb-ink);margin-bottom:6px}
-.bdg.bad{background:var(--red-soft);color:var(--red)}
-.bdg svg{width:24px;height:24px}
-"""
+
 
 ASK_MODAL = (
     '<div id="askModal" class="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="askTitle">'
@@ -294,43 +183,16 @@ ASK_MODAL = (
     '<div class="mf"><button class="btn" id="askNo">Cancel</button>'
     '<button class="btn pri" id="askYes">Confirm</button></div></div></div>')
 
-# trace used behind auth screens: a slow oscilloscope sweep
-TRACE_SVG = ('<svg class="trace" viewBox="0 0 1200 400" preserveAspectRatio="none" aria-hidden="true">'
-             '<path class="grid" d="M0 100H1200M0 200H1200M0 300H1200M200 0V400M400 0V400M600 0V400M800 0V400M1000 0V400"/>'
-             '<path class="wave" d="M0 210 C60 210 80 150 120 150 S180 260 240 260 300 120 360 120 420 230 480 230 540 180 600 180 660 300 720 300 780 90 840 90 900 220 960 220 1020 170 1080 170 1140 210 1200 210"/>'
-             '<path class="wave w2" d="M0 250 C80 250 110 230 160 230 S260 280 330 280 420 210 500 210 600 260 680 260 780 220 860 220 960 270 1040 270 1140 240 1200 240"/></svg>')
 
 # ============================================================ AUTH (login / setup)
-AUTH_CSS = r"""
-body{display:grid;place-items:center;padding:24px 18px;overflow-x:hidden;position:relative}
-.trace{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
-.trace .grid{stroke:var(--line);stroke-width:1;fill:none;opacity:.7}
 
-.trace .w2{stroke:var(--vio);opacity:.22;animation-delay:-4.5s;filter:none}
-
-.card{animation:scalein .42s cubic-bezier(.2,.8,.2,1) both;position:relative;z-index:1;width:100%;max-width:430px;background:var(--card);border:1.5px solid var(--line);border-radius:24px;padding:32px 30px 26px;box-shadow:var(--sh3);display:grid;gap:20px}
-.card::before{content:"";position:absolute;inset:0 0 auto;height:3px;border-radius:24px 24px 0 0;background:var(--acc)}
-.brand{display:flex;align-items:center;gap:12px}
-.brand .ver{margin-left:auto;font:600 12px var(--mono);color:var(--mut);background:var(--sunk);border-radius:99px;padding:5px 10px}
-h1{font-size:36px;line-height:1.04;font-weight:900;letter-spacing:-.035em}
-h1+p{color:var(--mut);margin-top:8px}
-.pw{position:relative}.pw .input{padding-right:48px}.pw button{position:absolute;right:4px;top:3px}
-.strength{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;height:6px}.strength i{border-radius:3px;background:var(--seg-off);transition:background .25s}
-.strength[data-s="1"] i:nth-child(-n+1){background:var(--red)}.strength[data-s="2"] i:nth-child(-n+2){background:var(--amb)}
-.strength[data-s="3"] i:nth-child(-n+3){background:var(--sig)}.strength[data-s="4"] i{background:var(--sig)}
-
-.protos{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.foot{text-align:center;font-size:13.5px;color:var(--mut)}
-.themebtn{position:fixed;top:14px;right:14px;z-index:2}
-@media(max-width:480px){.card{animation:scalein .42s cubic-bezier(.2,.8,.2,1) both;padding:26px 20px 22px;border-radius:20px}h1{font-size:31px}.themebtn{top:auto;bottom:12px;right:12px}}
-"""
 
 
 def _auth_page(title, heading, sub, form_inner, script):
-    return page(title, AUTH_CSS, '<body>' + SPRITE + TRACE_SVG +
+    return page(title, AUTH_CSS, '<body>' + SPRITE +
                 '<div class="themebtn">' + THEME_BTN + '</div>'
                 '<main class="card"><div class="brand">' + logo("lg") + wordmark("Xray control panel") +
-                '<span class="ver">v2.2</span></div>'
+                '<span class="ver">v2.3</span></div>'
                 '<div><h1>' + heading + '</h1><p>' + sub + '</p></div>' + form_inner +
                 '<div class="protos">' + '<span class="pp vless">' + ic("bolt") + 'VLESS</span>'
                 '<span class="pp trojan">' + ic("shield") + 'Trojan</span>'

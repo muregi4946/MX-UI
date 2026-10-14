@@ -31,7 +31,7 @@ from pages_dashboard import DASHBOARD_HTML, LOGS_HTML
 from pages_portal import render_portal
 from qr_generator import generate_qr_base64, qr_png_bytes
 
-VERSION = "2.2.0"
+VERSION = "2.3.0"
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO").upper(),
                     format="%(asctime)s [%(levelname)s] %(message)s")

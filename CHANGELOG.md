@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.3.0 — Aurora Glass redesign
+
+**Design**
+- Completely new visual system: glass surfaces over a slow animated aurora, violet-to-blue brand gradient, teal for "live/healthy", amber/red for warnings. Dark-first with a polished light theme.
+- New typography: Plus Jakarta Sans (UI), JetBrains Mono (numbers and links), Vazirmatn as the Persian fallback.
+- All CSS now lives in one file, `theme.py` (design tokens + every page). No more stacked override layers.
+- New logo gradient and favicon.
+
+**Animations**
+- Staggered page-load reveals, lamp pulse for live configs, springy switches and buttons, shimmer skeletons, sheen on primary buttons, animated login/portal cards, shake on wrong password.
+- Config list animates only on first load (no flicker on the 15 s refresh). Everything honours `prefers-reduced-motion`.
+
+**Responsive**
+- Header toolbar is now fully usable on phones (nothing is hidden any more: Logs, IPs, Health were unreachable before).
+- Modals become bottom sheets on phones. Filter chips scroll horizontally. Config rows, meters, tables, QR grid and the subscription pass re-flow cleanly from 320 px up.
+- Safe-area insets respected (notches / home bar).
+
+**Fixes**
+- Header side padding bug on narrow screens, loader markup placed before `<body>`, missing `.shake` / lamp styles, subscription page theme button overlapping the card on phones.
+
 ## 2.2.0
 
 **Protocols**
