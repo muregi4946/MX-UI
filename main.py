@@ -91,9 +91,9 @@ _login_fails: dict = defaultdict(deque)
 _save_dirty = False
 
 SS_METHOD = "chacha20-ietf-poly1305"   # must match xray_manager.SS_METHOD
-PROTOCOLS = ("vless", "trojan", "vmess", "ss")
+PROTOCOLS = ("vless", "trojan", "vmess", "ss", "hysteria2")
 DEFAULT_PROTOCOLS = ["vless", "trojan"]
-PROTO_LABEL = {"vless": "VLESS", "trojan": "Trojan", "vmess": "VMess", "ss": "Shadowsocks"}
+PROTO_LABEL = {"vless": "VLESS", "trojan": "Trojan", "vmess": "VMess", "ss": "Shadowsocks", "hysteria2": "Hysteria2"}
 WS_PATH = "/ws"
 TROJAN_WS_PATH = "/trojan"
 FINGERPRINTS = ("chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized")
@@ -354,7 +354,7 @@ def _clean_protocols(value, fallback=None) -> list:
         value = [value]
     if not isinstance(value, (list, tuple, set)):
         return list(fallback or DEFAULT_PROTOCOLS)
-    alias = {"shadowsocks": "ss", "ss-ws": "ss", "vmess-ws": "vmess"}
+    alias = {"shadowsocks": "ss", "ss-ws": "ss", "vmess-ws": "vmess", "hy2": "hysteria2", "hysteria": "hysteria2"}
     wanted = {alias.get(str(v).strip().lower(), str(v).strip().lower().replace("-ws", "")) for v in value}
     out = [p for p in PROTOCOLS if p in wanted]
     return out or list(fallback or DEFAULT_PROTOCOLS)
@@ -491,6 +491,14 @@ def generate_ss_link(password: str, host: str, remark: str, address: Optional[st
             f"/?plugin={quote(plugin, safe='')}#{quote(remark, safe='')}")
 
 
+def generate_hysteria2_link(password: str, host: str, remark: str,
+                            address: Optional[str] = None, port: Optional[int] = None) -> str:
+    """Generate a standard Hysteria2 URI for clients using a compatible UDP edge."""
+    params = {"sni": host, "insecure": "0"}
+    return (f"hysteria2://{quote(str(password), safe='')}@{_bracket(address or host)}:{port or DEFAULT_PORT}"
+            f"?{_qs(params)}#{quote(remark, safe='')}")
+
+
 def link_protocols(link: dict) -> list:
     return _clean_protocols(link.get("protocols"))
 
@@ -520,8 +528,10 @@ def build_all_links(link: dict, uid: str, host: str) -> list[dict]:
                 url = generate_trojan_link(pw, host, remark, fp, alpn, addr, port)
             elif proto == "vmess":
                 url = generate_vmess_link(uid, host, remark, fp, alpn, addr, port, token)
-            else:
+            elif proto == "ss":
                 url = generate_ss_link(ss_pw, host, remark, addr, port, token)
+            else:
+                url = generate_hysteria2_link(ss_pw, host, remark, addr, port)
             out.append({"protocol": proto, "label": PROTO_LABEL[proto], "where": where,
                         "tag": f"{PROTO_LABEL[proto]} · {where}", "address": addr,
                         "port": port, "url": url})

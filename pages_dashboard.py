@@ -5,7 +5,7 @@
 from pages import page, ic, UTIL_JS, SPRITE, MODAL_CSS, ASK_MODAL, THEME_BTN, brand
 
 DASH_CSS = r"""
-.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;min-width:0}
 header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 84%,transparent);backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);border-bottom:1px solid var(--line)}
 .bar{min-height:68px;padding:12px 0;display:flex;align-items:center;flex-wrap:wrap;gap:12px 14px}
 .hs{margin-left:auto;display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px;min-width:0}
@@ -69,13 +69,13 @@ header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 8
 .fchip.tr[aria-pressed=true]{border-color:var(--vio);color:var(--vio-ink)}.fchip.tr[aria-pressed=true] b{background:var(--vio);color:#fff}
 .fchip.vm[aria-pressed=true]{border-color:var(--navy);color:var(--navy)}.fchip.vm[aria-pressed=true] b{background:var(--navy);color:#fff}
 .fchip.ss[aria-pressed=true]{border-color:var(--amb-ink);color:var(--amb-ink)}.fchip.ss[aria-pressed=true] b{background:var(--amb);color:#1a1400}
+.fchip.hy2[aria-pressed=true]{border-color:#c94e2d;color:#c94e2d}.fchip.hy2[aria-pressed=true] b{background:#c94e2d;color:#fff}
 .lines{display:grid;gap:10px}
-.line{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;transition:border-color .2s,box-shadow .2s;position:relative;animation:rise .45s cubic-bezier(.2,.8,.2,1) both;box-shadow:var(--sh1)}
+.line{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;transition:border-color .2s,box-shadow .2s;position:relative;box-shadow:var(--sh1)}
 .line:hover{border-color:var(--line2)}
 .line.off{background:transparent;border-style:dashed;box-shadow:none}
 .line.off .name b{color:var(--mut)}
 .line.def{border-color:color-mix(in srgb,var(--sig) 40%,var(--line))}
-@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .name{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
 .name b{font-size:18px;font-weight:800;letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .meta{display:flex;gap:6px 14px;flex-wrap:wrap;margin-top:8px;font-size:13.5px;color:var(--mut)}
@@ -94,8 +94,7 @@ header{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 8
 .empty{padding:44px 20px;text-align:center;border:1.5px dashed var(--line2);border-radius:16px;color:var(--mut)}
 .empty b{display:block;color:var(--ink);font-size:20px;font-weight:800;margin-bottom:6px}
 .empty svg{width:34px;height:34px;color:var(--sig);margin-bottom:10px}
-.sk{height:104px;border-radius:16px;background:var(--sunk);border:1.5px solid var(--line);animation:pulse 1.4s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.5}}
+.sk{height:104px;border-radius:16px;background:var(--sunk);border:1.5px solid var(--line)}
 footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:var(--mut);font-size:13.5px;padding:34px 0 40px;border-top:1px solid var(--line);margin-top:34px}
 footer b{color:var(--ink);font-family:var(--mono);font-weight:600}
 @media(max-width:720px){
@@ -104,6 +103,17 @@ footer b{color:var(--ink);font-family:var(--mono);font-weight:600}
   .line .acts{grid-column:1/-1;justify-content:flex-start}
   .search .input{width:100%}.search{flex:1 1 100%}
   .bar{padding:10px 0}
+}
+@media(max-width:420px){
+  .wrap{padding-left:14px;padding-right:14px}
+  .panel{padding:16px;border-radius:16px}
+  .line{padding:14px 12px}
+  .name b{font-size:16px}
+  .meta{font-size:12.5px;gap:5px 10px}
+  .usage{grid-template-columns:1fr;gap:6px}
+  .acts{gap:2px}
+  .acts .ib{width:34px;height:34px}
+  .sec-h h2{font-size:24px}
 }
 
 /* link field */
@@ -123,6 +133,7 @@ footer b{color:var(--ink);font-family:var(--mono);font-weight:600}
 .ptog.tr input{accent-color:var(--vio)}
 .ptog.vm:has(input:checked){border-color:var(--navy);background:rgba(22,49,125,.09)}.ptog.vm input{accent-color:var(--navy)}
 .ptog.ss:has(input:checked){border-color:var(--amb-ink);background:var(--amb-soft)}.ptog.ss input{accent-color:var(--amb-ink)}
+.ptog.hy2:has(input:checked){border-color:#c94e2d;background:rgba(242,113,65,.14)}.ptog.hy2 input{accent-color:#c94e2d}
 
 /* generic */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -256,6 +267,7 @@ DASH_BODY = r"""<body>
         <button class="fchip tr" data-p="trojan" aria-pressed="false">Trojan <b id="cTrojan">0</b></button>
         <button class="fchip vm" data-p="vmess" aria-pressed="false">VMess <b id="cVmess">0</b></button>
         <button class="fchip ss" data-p="ss" aria-pressed="false">Shadowsocks <b id="cSs">0</b></button>
+        <button class="fchip hy2" data-p="hysteria2" aria-pressed="false">Hysteria2 <b id="cHy2">0</b></button>
       </div>
     </div>
     <div class="lines" id="lines"><div class="sk"></div><div class="sk"></div></div>
@@ -275,6 +287,7 @@ DASH_BODY = r"""<body>
       <label class="ptog tr"><input type="checkbox" id="pT"><span>__IC_shield__Trojan</span><small>WebSocket over TLS</small></label>
       <label class="ptog vm"><input type="checkbox" id="pM"><span>__IC_cpu__VMess</span><small>WebSocket over TLS</small></label>
       <label class="ptog ss"><input type="checkbox" id="pS"><span>__IC_key__Shadowsocks</span><small>v2ray-plugin over TLS</small></label>
+      <label class="ptog hy2"><input type="checkbox" id="pH"><span>__IC_wifi__Hysteria2</span><small>UDP over QUIC</small></label>
     </div>
     <div class="sect">Identity</div>
     <div class="g2">
@@ -426,7 +439,7 @@ function renderStats(d){
   $('mDisk').textContent=Math.round(d.disk_percent)+'%';sy('vDisk',d.disk_percent);$('pDisk').textContent=d.disk_used_gb.toFixed(1)+' / '+d.disk_total_gb.toFixed(1)+' GB';
   var st=d.states||{};
   $('cActive').textContent=st.active||0;$('cDisabled').textContent=st.disabled||0;$('cExpired').textContent=st.expired||0;$('cDepleted').textContent=st.depleted||0;
-  $('cVless').textContent=pr.vless||0;$('cTrojan').textContent=pr.trojan||0;$('cVmess').textContent=pr.vmess||0;$('cSs').textContent=pr.ss||0;
+  $('cVless').textContent=pr.vless||0;$('cTrojan').textContent=pr.trojan||0;$('cVmess').textContent=pr.vmess||0;$('cSs').textContent=pr.ss||0;$('cHy2').textContent=pr.hysteria2||0;
 }
 async function pollStats(){try{var r=await api('/stats');if(r.ok)renderStats(await r.json());}catch(e){}}
 
@@ -500,8 +513,8 @@ $('lines').addEventListener('change',function(e){
 /* ---------- config form ---------- */
 var FPS=['chrome','firefox','safari','ios','android','edge','360','qq','random','randomized'];
 (function(){$('cFp').innerHTML=FPS.map(function(f){return '<option value="'+f+'">'+f+'</option>';}).join('');})();
-function setProtos(list){$('pV').checked=list.indexOf('vless')>=0;$('pT').checked=list.indexOf('trojan')>=0;$('pM').checked=list.indexOf('vmess')>=0;$('pS').checked=list.indexOf('ss')>=0;}
-function getProtos(){var o=[];if($('pV').checked)o.push('vless');if($('pT').checked)o.push('trojan');if($('pM').checked)o.push('vmess');if($('pS').checked)o.push('ss');return o;}
+function setProtos(list){$('pV').checked=list.indexOf('vless')>=0;$('pT').checked=list.indexOf('trojan')>=0;$('pM').checked=list.indexOf('vmess')>=0;$('pS').checked=list.indexOf('ss')>=0;$('pH').checked=list.indexOf('hysteria2')>=0;}
+function getProtos(){var o=[];if($('pV').checked)o.push('vless');if($('pT').checked)o.push('trojan');if($('pM').checked)o.push('vmess');if($('pS').checked)o.push('ss');if($('pH').checked)o.push('hysteria2');return o;}
 function resetForm(){$('cUid').value='';$('cLabel').value='';$('cFp').value='chrome';$('cLimit').value='0';$('cLimitUnit').value='GB';$('cExpDays').value='0';$('cExpDate').value='';$('cIpLimit').value='0';$('cSpeed').value='0';$('cSpeedUnit').value='MBIT';$('cAlpn').value='';$('cNote').value='';setProtos(['vless','trojan']);$('cfgErr').classList.add('hidden');}
 function newConfig(){resetForm();STATE.cur=null;$('cfgTitle').textContent='New config';$('cfgSub2').textContent='A tunnel line with its own quota and limits.';$('cfgSave').textContent='Create config';$('cExpWrap').style.display='';$('cExpDateWrap').style.display='none';openModal('cfgModal');$('cLabel').focus();}
 function editConfig(l){resetForm();STATE.cur=l;$('cUid').value=l.uuid;$('cLabel').value=l.label;$('cFp').value=l.fingerprint||'chrome';$('cAlpn').value=l.alpn||'';$('cNote').value=l.note||'';setProtos(l.protocols||['vless']);
